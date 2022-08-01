@@ -6,7 +6,9 @@ This package works with [ethnum](https://github.com/nlordell/ethnum-rs) and [prb
 
 ## Sample Performance Differences
 [muldiv vs multiply_ratio](/samples/muldiv.svg)
+
 [mul](/samples/mul.svg)
+
 In the one above, we perform 4 multiplication operations using:
 - unchecked U256
 - converting from Uint256 -> doing checked U256 -> converting back to Uint256
