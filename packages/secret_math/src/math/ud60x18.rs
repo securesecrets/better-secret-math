@@ -134,7 +134,6 @@ pub fn from_uint(x: Uint256) -> StdResult<U256> {
 }
 
 /// Asserts that 2 unsigned 60.18-decimal fixed-point values are within some decimal precision error.
-#[cfg(test)]
 pub fn assert_with_precision(actual: U256, expected: U256, error: U256 ) {
     use crate::core::{abs_diff, muldiv};
 
