@@ -1,6 +1,8 @@
 # better-secret-math
 This package works with [ethnum](https://github.com/nlordell/ethnum-rs) and [prb-math](https://github.com/paulrberg/prb-math) to implement efficient fixed-point math that works with numbers which are considered to have 18 trailing decimals. The criterion crate is used for benchmarking, and it has shown a performance boost of 2x to 3x in most cases (though this has yet to be tested to see if it translates into lower gas costs).
 
+**This crate was made to only work with Secret Cosmwasm v1.**
+
 ## Usage
 `better-secret-math = { git = "https://github.com/securesecrets/better-secret-math" }`
 
