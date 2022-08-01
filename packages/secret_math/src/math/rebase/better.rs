@@ -15,7 +15,7 @@ pub struct BtrRebase {
 
 impl From<Rebase> for BtrRebase {
     fn from(r: Rebase) -> Self {
-        BtrRebase { elastic: U256::from_be_bytes(r.base.to_be_bytes()), base: U256::from_be_bytes(r.elastic.to_be_bytes()) }
+        BtrRebase { elastic: r.base.into(), base: r.elastic.into() }
     }
 }
 
