@@ -1,0 +1,28 @@
+[package]
+name = "better-secret-math"
+version = "0.1.0"
+authors = ["hoomp <flammable.shower939@anonaddy.me>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bench]]
+name = "bench_main"
+harness = false
+
+[features]
+default = []
+
+[dependencies]
+# Core
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
+cosmwasm-schema = { git = "https://github.com/CosmWasm/cosmwasm", commit = "1e05e7e" }
+schemars = "0.8.9"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = "1.0"
+ethnum = { version = "1.2.1", features = ["serde"] }
+
+[dev-dependencies]
+rstest = "0.15.0"
+criterion = "0.3"
