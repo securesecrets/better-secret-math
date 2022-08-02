@@ -49,11 +49,11 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Conversion");
 
     group.bench_function("U256::to_be_bytes", |b| {
-        b.iter(|| U256::from_be_bytes(sml_uint[1].to_be_bytes()))
+        b.iter(|| black_box(U256::from_be_bytes(sml_uint[1].to_be_bytes())))
     });
 
     group.bench_function("U256::decimals", |b| {
-        b.iter(|| U256::from_be_bytes(Decimal256::new(sml_uint[1]).atomics().to_be_bytes()))
+        b.iter(|| black_box(U256::from_be_bytes(Decimal256::new(sml_uint[1]).atomics().to_be_bytes())))
     });
 
     group.finish();
@@ -61,11 +61,11 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Muldiv");
 
     group.bench_function("U256::muldiv", |b| {
-        b.iter(|| muldiv(sml[0], sml[1], SCALE))
+        b.iter(|| black_box(muldiv(sml[0], sml[1], SCALE)))
     });
 
     group.bench_function("Uint256::multiply_ratio", |b| {
-        b.iter(|| sml_uint[0].multiply_ratio(sml_uint[1], Uint256::from_u128(SCALE_u128)))
+        b.iter(|| black_box(sml_uint[0].multiply_ratio(sml_uint[1], Uint256::from_u128(SCALE_u128))))
     });
 
     group.finish();
