@@ -4,6 +4,8 @@ use std::ops::Not;
 
 use super::asm::*;
 use cosmwasm_std::{OverflowError, OverflowOperation, StdError, StdResult};
+use super::constants::*;
+
 use ethnum::U256;
 const SCALE: U256 = U256::new(1_000_000_000_000_000_000u128);
 
@@ -434,3 +436,17 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     result = prod0 * inverse;
     Ok(result)
 }
+
+    /// Gets the result of 10^x in constant time. Used for precision calculations (i.e. normalizing different token amounts
+    /// based off their decimals).
+    ///
+    /// @param x - integer between 1 and 18
+    ///
+    /// @return result The common logarithm as an unsigned 60.18-decimal fixed-point number.
+    pub fn e10(x: u32) -> U256 {
+        // Note that the "mul" in this block is the assembly multiplication operation, not the "mul" function defined
+        // in this contract.
+        // prettier-ignore
+            match x {
+                1 => TEN
+
