@@ -1,6 +1,5 @@
 //! For advanced fixed-point math that works with U256 numbers which are considered to have 18 trailing decimals. We call this number representation unsigned 60.18-decimal fixed-point, since there can be up to 60 digits in the integer part and up to 18 decimals in the fractional part. The numbers are bound by the minimum and the maximum values permitted by the CosmWasm type U256.
 //!
-//! Based off https://github.com/paulrberg/prb-math/blob/main/contracts/PRBMathSD59x18.sol.
 
 use crate::{asm::mul, core::most_significant_bit};
 
@@ -9,10 +8,11 @@ use super::{
     SCALE,
 };
 use cosmwasm_std::{Decimal256, DivideByZeroError, StdError, StdResult, Uint256};
-use ethnum::U256;
+use ethnum::{U256, AsU256};
 
-fn sub(x: U256, y: U256) -> I256 {
-    x.as_i256() - y.as_i256()
+/// This function will never be run. It's just here so the code from PRBMathUD 60x18 maintains its original form.
+fn phantom_sub(x: i32, y: i32) -> U256 {
+    x.as_u256() - y.as_u256()
 }
 
 /// Calculates the binary exponent of x using the binary fraction method.
@@ -218,25 +218,25 @@ pub fn log2(x: U256) -> StdResult<U256> {
         // in this contract.
         // prettier-ignore
             match x {
-                U256::ONE => result = mul(SCALE, sub(0.into(), 18.into())),
-                U256::new(10u128) =>  result = mul(SCALE, sub(1.into(), 18.into())),
-                U256::new(100u128) =>  result = mul(SCALE, sub(2, 18.into())),
-                U256::new(1000) =>  result = mul(SCALE, sub(3, 18.into())),
-                U256::new(10000) =>  result = mul(SCALE, sub(4, 18.into())),
-                U256::new(100000) =>  result = mul(SCALE, sub(5, 18.into())),
-                U256::new(1000000) =>  result = mul(SCALE, sub(6, 18.into())),
-                U256::new(10000000) =>  result = mul(SCALE, sub(7, 18.into())),
-                U256::new(100000000) =>  result = mul(SCALE, sub(8, 18.into())),
-                U256::new(1000000000) =>  result = mul(SCALE, sub(9, 18.into())),
-                U256::new(10000000000) =>  result = mul(SCALE, sub(10, 18.into())),
-                U256::new(100000000000) =>  result = mul(SCALE, sub(11, 18.into())),
-                U256::new(1000000000000) =>  result = mul(SCALE, sub(12, 18.into())),
-                U256::new(10000000000000) =>  result = mul(SCALE, sub(13, 18.into())),
-                U256::new(100000000000000) =>  result = mul(SCALE, sub(14, 18.into())),
-                U256::new(1000000000000000) =>  result = mul(SCALE, sub(15, 18.into())),
-                U256::new(10000000000000000) =>  result = mul(SCALE, sub(16, 18.into())),
-                U256::new(100000000000000000) =>  result = mul(SCALE, sub(17, 18.into())),
-                U256::new(1000000000000000000) =>  result = 0,
+                U256::ONE => result = mul(SCALE, phantom_sub(0, 18)),
+                U256::new(10u128) =>  result = mul(SCALE, phantom_sub(1, 18)),
+                U256::new(100u128) =>  result = mul(SCALE, phantom_sub(2, 18)),
+                U256::new(1000) =>  result = mul(SCALE, phantom_sub(3, 18)),
+                U256::new(10000) =>  result = mul(SCALE, phantom_sub(4, 18)),
+                U256::new(100000) =>  result = mul(SCALE, phantom_sub(5, 18)),
+                U256::new(1000000) =>  result = mul(SCALE, phantom_sub(6, 18)),
+                U256::new(10000000) =>  result = mul(SCALE, phantom_sub(7, 18)),
+                U256::new(100000000) =>  result = mul(SCALE, phantom_sub(8, 18)),
+                U256::new(1000000000) =>  result = mul(SCALE, phantom_sub(9, 18)),
+                U256::new(10000000000) =>  result = mul(SCALE, phantom_sub(10, 18)),
+                U256::new(100000000000) =>  result = mul(SCALE, phantom_sub(11, 18)),
+                U256::new(1000000000000) =>  result = mul(SCALE, phantom_sub(12, 18)),
+                U256::new(10000000000000) =>  result = mul(SCALE, phantom_sub(13, 18)),
+                U256::new(100000000000000) =>  result = mul(SCALE, phantom_sub(14, 18)),
+                U256::new(1000000000000000) =>  result = mul(SCALE, phantom_sub(15, 18)),
+                U256::new(10000000000000000) =>  result = mul(SCALE, phantom_sub(16, 18)),
+                U256::new(100000000000000000) =>  result = mul(SCALE, phantom_sub(17, 18)),
+                U256::new(1000000000000000000) =>  result = U256::ZERO,
                 U256::new(10000000000000000000) =>  result = SCALE,
                 U256::new(100000000000000000000) =>  result = mul(SCALE, 2),
                 U256::new(1000000000000000000000) =>  result = mul(SCALE, 3),
