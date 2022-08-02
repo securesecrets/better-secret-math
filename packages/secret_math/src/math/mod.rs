@@ -4,6 +4,7 @@ pub mod asm;
 pub mod core;
 pub mod sd59x18;
 pub mod ud60x18;
+pub(crate) mod tens;
 mod rebase;
 
 use ethnum::{U256};

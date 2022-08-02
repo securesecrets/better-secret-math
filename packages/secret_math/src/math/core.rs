@@ -1,9 +1,12 @@
 //! Common mathematical functions used in ud60x18 and sd59x18. Note that this shared library does not always assume the unsigned 60.18-decimal fixed-point representation. When it does not, it is explicitly mentioned in the documentation.
 //! Forks methods from here - https://github.com/paulrberg/prb-math/blob/main/contracts/PRBMath.sol.
+use core::panic;
 use std::ops::Not;
 
 use super::asm::*;
 use cosmwasm_std::{OverflowError, OverflowOperation, StdError, StdResult};
+use super::tens::*;
+
 use ethnum::U256;
 const SCALE: U256 = U256::new(1_000_000_000_000_000_000u128);
 
@@ -366,7 +369,7 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
 
     let mm = mulmod(x, y, U256::ZERO.not());
     prod0 = mul(x, y);
-    prod1 = sub(sub(mm, prod0), lt(mm, prod0));
+    prod1 = u_sub(u_sub(mm, prod0), lt(mm, prod0));
 
     // Handle non-overflow cases, 256 by 256 division.
     if (prod1 == 0) {
@@ -389,13 +392,13 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     // 512 by 256 division.
     ///////////////////////////////////////////////
 
-    // Make division exact by subtracting the remainder from [prod1 prod0].
+    // Make division exact by u_subtracting the remainder from [prod1 prod0].
     // Compute remainder using mulmod.
     let remainder = mulmod(x, y, denominator);
 
-    // Subtract 256 bit number from 512 bit number.
-    prod1 = sub(prod1, gt(remainder, prod0));
-    prod0 = sub(prod0, remainder);
+    // u_subtract 256 bit number from 512 bit number.
+    prod1 = u_sub(prod1, gt(remainder, prod0));
+    prod0 = u_sub(prod0, remainder);
 
     // Factor powers of two out of denominator and compute largest power of two divisor of denominator. Always >= 1.
     // See https://cs.stackexchange.com/q/138556/92363.
@@ -408,7 +411,7 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     prod0 = div(prod0, lpotdod);
 
     // Flip lpotdod such that it is 2^256 / lpotdod. If lpotdod is zero, then it becomes one.
-    lpotdod = add(div(sub(U256::ZERO, lpotdod), lpotdod), U256::ONE);
+    lpotdod = add(div(u_sub(U256::ZERO, lpotdod), lpotdod), U256::ONE);
 
     // Shift in bits from prod1 into prod0.
     prod0 |= prod1 * lpotdod;
@@ -434,3 +437,52 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     result = prod0 * inverse;
     Ok(result)
 }
+
+    /// Gets the result of 10^x in constant time. Used for decimal precision calculations (i.e. normalizing different token amounts
+    /// based off their token decimals, etc). In most cases, x would be between 0 and 18, but we allow for up to 32 in case something special comes up.
+    ///
+    /// @param x - integer between 0 and 32
+    ///
+    /// @return result The common logarithm as an unsigned 60.18-decimal fixed-point number.
+    pub fn e10(x: u32) -> U256 {
+        // Note that the "mul" in this block is the assembly multiplication operation, not the "mul" function defined
+        // in this contract.
+        // prettier-ignore
+            match x {
+                0 => QUINTILLIONTH,
+                1 => HUN_QUADTH,
+                2 => TEN_QUADTH,
+                3 => QUADTH,
+                4 => HUN_TRILTH,
+                5 => TEN_TRILTH,
+                6 => TRILTH,
+                7 => HUN_BILTH,
+                8 => TEN_BILTH,
+                9 => BILTH,
+                10 => HUN_MILTH,
+                11 => TEN_MILTH,
+                12 => MILTH,
+                13 => HUN_THOUSANDTH,
+                14 => TEN_THOUSANDTH,
+                15 => THOUSANDTH,
+                16 => HUNDREDTH,
+                17 => TENTH,
+                18 => ONE,
+                19 => TEN,
+                20 => HUNDRED,
+                21 => THOUSAND,
+                22 => TEN_THOUSAND,
+                23 => HUN_THOUSAND,
+                24 => MIL,
+                25 => TEN_MIL,
+                26 => HUN_MIL,
+                27 => BIL,
+                28 => TEN_BIL,
+                29 => HUN_BIL,
+                30 => TRIL,
+                31 => TEN_TRIL,
+                32 => HUN_TRIL,
+                _ => panic!("Not using this correctly :|"),
+            }
+        }
+
