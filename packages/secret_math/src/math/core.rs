@@ -438,10 +438,10 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     Ok(result)
 }
 
-    /// Gets the result of 10^x in constant time. Used for precision calculations (i.e. normalizing different token amounts
-    /// based off their decimals).
+    /// Gets the result of 10^x in constant time. Used for decimal precision calculations (i.e. normalizing different token amounts
+    /// based off their token decimals, etc). In most cases, x would be between 0 and 18, but we allow for up to 32 in case something special comes up.
     ///
-    /// @param x - integer between 0 and 18
+    /// @param x - integer between 0 and 32
     ///
     /// @return result The common logarithm as an unsigned 60.18-decimal fixed-point number.
     pub fn e10(x: u32) -> U256 {
@@ -469,6 +469,19 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
                 17 => TENTH,
                 18 => ONE,
                 19 => TEN,
+                20 => HUNDRED,
+                21 => THOUSAND,
+                22 => TEN_THOUSAND,
+                23 => HUN_THOUSAND,
+                24 => MIL,
+                25 => TEN_MIL,
+                26 => HUN_MIL,
+                27 => BIL,
+                28 => TEN_BIL,
+                29 => HUN_BIL,
+                30 => TRIL,
+                31 => TEN_TRIL,
+                32 => HUN_TRIL,
                 _ => panic!("Not using this correctly :|"),
             }
         }
