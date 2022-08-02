@@ -1,6 +1,6 @@
-use std::ops::{Add, Div};
 use cosmwasm_std::StdResult;
 use ethnum::U256;
+use std::ops::{Add, Div};
 
 use crate::core::muldiv;
 
@@ -15,7 +15,10 @@ pub struct BtrRebase {
 
 impl From<Rebase> for BtrRebase {
     fn from(r: Rebase) -> Self {
-        BtrRebase { elastic: r.base.into(), base: r.elastic.into() }
+        BtrRebase {
+            elastic: r.base.into(),
+            base: r.elastic.into(),
+        }
     }
 }
 
@@ -27,7 +30,10 @@ impl Default for BtrRebase {
 
 impl BtrRebase {
     pub fn new() -> Self {
-        BtrRebase { elastic: U256::ZERO, base: U256::ZERO }
+        BtrRebase {
+            elastic: U256::ZERO,
+            base: U256::ZERO,
+        }
     }
 
     /// Calculates the base value in relationship to `elastic` and self
@@ -59,7 +65,7 @@ impl BtrRebase {
     }
 
     /// Add `elastic` to `self` and update `total.base`
-    pub fn add_elastic(&mut self, elastic: U256, round_up: bool) -> StdResult<(& mut Self, U256)> {
+    pub fn add_elastic(&mut self, elastic: U256, round_up: bool) -> StdResult<(&mut Self, U256)> {
         let base = self.to_base(elastic, round_up)?;
         self.elastic += elastic;
         self.base += base;
@@ -67,7 +73,7 @@ impl BtrRebase {
     }
 
     /// Sub `elastic` from `self` and update `total.base`
-    pub fn sub_elastic(&mut self, elastic: U256, round_up: bool) -> StdResult<(& mut Self, U256)> {
+    pub fn sub_elastic(&mut self, elastic: U256, round_up: bool) -> StdResult<(&mut Self, U256)> {
         let base = self.to_base(elastic, round_up)?;
         self.elastic -= elastic;
         self.base -= base;
@@ -75,7 +81,7 @@ impl BtrRebase {
     }
 
     /// Add `base` to `total` and update `self.elastic`
-    pub fn add_base(&mut self, base: U256, round_up: bool) -> StdResult<(& mut Self, U256)> {
+    pub fn add_base(&mut self, base: U256, round_up: bool) -> StdResult<(&mut Self, U256)> {
         let elastic = self.to_elastic(base, round_up)?;
         self.elastic += elastic;
         self.base += base;
@@ -83,7 +89,7 @@ impl BtrRebase {
     }
 
     /// Sub `base` from `total` and update `self.elastic`
-    pub fn sub_base(&mut self, base: U256, round_up: bool) -> StdResult<(& mut Self, U256)> {
+    pub fn sub_base(&mut self, base: U256, round_up: bool) -> StdResult<(&mut Self, U256)> {
         let elastic = self.to_elastic(base, round_up)?;
         self.elastic -= elastic;
         self.base -= base;
@@ -91,14 +97,14 @@ impl BtrRebase {
     }
 
     /// Add `elastic` and `base` to self.
-    pub fn add_self(&mut self, elastic: U256, base: U256) -> StdResult<& mut Self> {
+    pub fn add_self(&mut self, elastic: U256, base: U256) -> StdResult<&mut Self> {
         self.elastic += elastic;
         self.base += base;
         Ok(self)
     }
 
     /// Subtract `elastic` and `base` from self.
-    pub fn sub_self(&mut self, elastic: U256, base: U256) -> StdResult<& mut Self> {
+    pub fn sub_self(&mut self, elastic: U256, base: U256) -> StdResult<&mut Self> {
         self.elastic -= elastic;
         self.base -= base;
         Ok(self)

@@ -4,11 +4,16 @@ use core::panic;
 use std::ops::Not;
 
 use super::asm::*;
-use cosmwasm_std::{OverflowError, OverflowOperation, StdError, StdResult};
 use super::tens::*;
+use cosmwasm_std::{OverflowError, OverflowOperation, StdError, StdResult};
 
 use ethnum::U256;
 const SCALE: U256 = U256::new(1_000_000_000_000_000_000u128);
+    /// Largest power of two divisor of SCALE.
+    const SCALE_LPOTD: U256 = U256::new(262144u128);
+
+        /// SCALE inverted mod 2^256.
+        const SCALE_INVERSE: U256 = U256::from_words(229681740086561209518615317264092320238, 298919117238935307856972083127780443753);
 
 /// Finds whether or not some Uint256 is odd.
 pub fn is_odd(x: U256) -> bool {
@@ -28,7 +33,11 @@ pub fn avg(x: U256, y: U256) -> U256 {
 
 /// Takes the absolute difference of two unsigned ints.
 pub fn abs_diff(x: U256, y: U256) -> U256 {
-    if x > y { x - y } else { y - x }
+    if x > y {
+        x - y
+    } else {
+        y - x
+    }
 }
 
 /// Calculates the square root of x, rounding down.
@@ -438,48 +447,109 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     Ok(result)
 }
 
-    /// Gets the result of 10^x in constant time. Used for decimal precision calculations (i.e. normalizing different token amounts
-    /// based off their token decimals, etc). In most cases, x would be between 0 and 18, but we allow for up to 32 in case something special comes up.
+/// Gets the result of 10^x in constant time. Used for decimal precision calculations (i.e. normalizing different token amounts
+/// based off their token decimals, etc). In most cases, x would be between 0 and 18, but we allow for up to 32 in case something special comes up.
+///
+/// @param x - integer between 0 and 32
+///
+/// @return result 10^x as U256
+pub const fn exp10(x: u8) -> U256 {
+    match x {
+        0 => QUINTILLIONTH,
+        1 => HUN_QUADTH,
+        2 => TEN_QUADTH,
+        3 => QUADTH,
+        4 => HUN_TRILTH,
+        5 => TEN_TRILTH,
+        6 => TRILTH,
+        7 => HUN_BILTH,
+        8 => TEN_BILTH,
+        9 => BILTH,
+        10 => HUN_MILTH,
+        11 => TEN_MILTH,
+        12 => MILTH,
+        13 => HUN_THOUSANDTH,
+        14 => TEN_THOUSANDTH,
+        15 => THOUSANDTH,
+        16 => HUNDREDTH,
+        17 => TENTH,
+        18 => ONE,
+        19 => TEN,
+        20 => HUNDRED,
+        21 => THOUSAND,
+        22 => TEN_THOUSAND,
+        23 => HUN_THOUSAND,
+        24 => MIL,
+        25 => TEN_MIL,
+        26 => HUN_MIL,
+        27 => BIL,
+        28 => TEN_BIL,
+        29 => HUN_BIL,
+        30 => TRIL,
+        31 => TEN_TRIL,
+        32 => HUN_TRIL,
+        _ => panic!("Not using this correctly :|"),
+    }
+}
+
+    /// @notice Calculates floor(x*y÷1e18) with full precision.
     ///
-    /// @param x - integer between 0 and 32
+    /// @dev Variant of "mulDiv" with constant folding, i.e. in which the denominator is always 1e18. Before returning the
+    /// final result, we add 1 if (x * y) % SCALE >= HALF_SCALE. Without this, 6.6e-19 would be truncated to 0 instead of
+    /// being rounded to 1e-18.  See "Listing 6" and text above it at https://accu.org/index.php/journals/1717.
     ///
-    /// @return result 10^x as U256
-    pub const fn exp10(x: u8) -> U256 {
-            match x {
-                0 => QUINTILLIONTH,
-                1 => HUN_QUADTH,
-                2 => TEN_QUADTH,
-                3 => QUADTH,
-                4 => HUN_TRILTH,
-                5 => TEN_TRILTH,
-                6 => TRILTH,
-                7 => HUN_BILTH,
-                8 => TEN_BILTH,
-                9 => BILTH,
-                10 => HUN_MILTH,
-                11 => TEN_MILTH,
-                12 => MILTH,
-                13 => HUN_THOUSANDTH,
-                14 => TEN_THOUSANDTH,
-                15 => THOUSANDTH,
-                16 => HUNDREDTH,
-                17 => TENTH,
-                18 => ONE,
-                19 => TEN,
-                20 => HUNDRED,
-                21 => THOUSAND,
-                22 => TEN_THOUSAND,
-                23 => HUN_THOUSAND,
-                24 => MIL,
-                25 => TEN_MIL,
-                26 => HUN_MIL,
-                27 => BIL,
-                28 => TEN_BIL,
-                29 => HUN_BIL,
-                30 => TRIL,
-                31 => TEN_TRIL,
-                32 => HUN_TRIL,
-                _ => panic!("Not using this correctly :|"),
-            }
+    /// Requirements:
+    /// - The result must fit within uint256.
+    ///
+    /// Caveats:
+    /// - The body is purposely left uncommented; see the NatSpec comments in "PRBMath.mulDiv" to understand how this works.
+    /// - It is assumed that the result can never be type(uint256).max when x and y solve the following two equations:
+    ///     1. x * y = type(uint256).max * SCALE
+    ///     2. (x * y) % SCALE >= SCALE / 2
+    ///
+    /// @param x The multiplicand as an unsigned 60.18-decimal fixed-point number.
+    /// @param y The multiplier as an unsigned 60.18-decimal fixed-point number.
+    /// @return result The result as an unsigned 60.18-decimal fixed-point number.
+    pub fn muldiv_fp(x: U256, y: U256) -> StdResult<U256> {
+            let mm = mulmod(x, y, !U256::ZERO);
+            let prod0 = mul(x, y);
+            let prod1 = u_sub(u_sub(mm, prod0), lt(mm, prod0));
+
+        if prod1 >= SCALE {
+            return Err(StdError::generic_err(format!("PRBMath__MulDivFixedPointOverflow {}", prod1)));
         }
 
+            let remainder = mulmod(x, y, SCALE);
+            let round_up_unit = gt(remainder, U256::new(499999999999999999u128));
+
+        if prod1 == 0 {
+                let result = (prod0 / SCALE) + round_up_unit;
+                return Ok(result);
+        }
+
+            Ok(add(
+                mul(
+                    or(
+                        div(u_sub(prod0, remainder), SCALE_LPOTD),
+                        mul(u_sub(prod1, gt(remainder, prod0)), add(div(u_sub(U256::ZERO, SCALE_LPOTD), SCALE_LPOTD), U256::ONE))
+                    ),
+                    SCALE_INVERSE
+                ),
+                round_up_unit
+            ))
+    }
+
+
+    #[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test() {
+        let int2 = U256::from_str_prefixed(
+            "78156646155174841979727994598816262306175212592076161876661508869554232690281",
+        )
+        .unwrap();
+        assert_eq!(SCALE_INVERSE, int2);
+    }
+}

@@ -1,8 +1,8 @@
 use std::ops::{Add, Div};
 
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Uint256;
 use cosmwasm_std::StdResult;
+use cosmwasm_std::Uint256;
 
 use super::BtrRebase;
 
@@ -14,7 +14,10 @@ pub struct Rebase {
 
 impl From<BtrRebase> for Rebase {
     fn from(r: BtrRebase) -> Self {
-        Rebase { base: r.base.into(), elastic: r.elastic.into() }
+        Rebase {
+            base: r.base.into(),
+            elastic: r.elastic.into(),
+        }
     }
 }
 
@@ -26,7 +29,10 @@ impl Default for Rebase {
 
 impl Rebase {
     pub fn new() -> Self {
-        Rebase { elastic: Uint256::zero(), base: Uint256::zero() }
+        Rebase {
+            elastic: Uint256::zero(),
+            base: Uint256::zero(),
+        }
     }
 
     /// Calculates the base value in relationship to `elastic` and self
@@ -58,7 +64,11 @@ impl Rebase {
     }
 
     /// Add `elastic` to `self` and update `total.base`
-    pub fn add_elastic(&mut self, elastic: Uint256, round_up: bool) -> StdResult<(& mut Self, Uint256)> {
+    pub fn add_elastic(
+        &mut self,
+        elastic: Uint256,
+        round_up: bool,
+    ) -> StdResult<(&mut Self, Uint256)> {
         let base = self.to_base(elastic, round_up)?;
         self.elastic = self.elastic.checked_add(elastic)?;
         self.base = self.base.checked_add(base)?;
@@ -66,7 +76,11 @@ impl Rebase {
     }
 
     /// Sub `elastic` from `self` and update `total.base`
-    pub fn sub_elastic(&mut self, elastic: Uint256, round_up: bool) -> StdResult<(& mut Self, Uint256)> {
+    pub fn sub_elastic(
+        &mut self,
+        elastic: Uint256,
+        round_up: bool,
+    ) -> StdResult<(&mut Self, Uint256)> {
         let base = self.to_base(elastic, round_up)?;
         self.elastic = self.elastic.checked_sub(elastic)?;
         self.base = self.base.checked_sub(base)?;
@@ -74,7 +88,7 @@ impl Rebase {
     }
 
     /// Add `base` to `total` and update `self.elastic`
-    pub fn add_base(&mut self, base: Uint256, round_up: bool) -> StdResult<(& mut Self, Uint256)> {
+    pub fn add_base(&mut self, base: Uint256, round_up: bool) -> StdResult<(&mut Self, Uint256)> {
         let elastic = self.to_elastic(base, round_up)?;
         self.elastic = self.elastic.checked_add(elastic)?;
         self.base = self.base.checked_add(base)?;
@@ -82,7 +96,7 @@ impl Rebase {
     }
 
     /// Sub `base` from `total` and update `self.elastic`
-    pub fn sub_base(&mut self, base: Uint256, round_up: bool) -> StdResult<(& mut Self, Uint256)> {
+    pub fn sub_base(&mut self, base: Uint256, round_up: bool) -> StdResult<(&mut Self, Uint256)> {
         let elastic = self.to_elastic(base, round_up)?;
         self.elastic = self.elastic.checked_sub(elastic)?;
         self.base = self.base.checked_sub(base)?;
@@ -90,14 +104,14 @@ impl Rebase {
     }
 
     /// Add `elastic` and `base` to self.
-    pub fn add_self(&mut self, elastic: Uint256, base: Uint256) -> StdResult<& mut Self> {
+    pub fn add_self(&mut self, elastic: Uint256, base: Uint256) -> StdResult<&mut Self> {
         self.elastic = self.elastic.checked_add(elastic)?;
         self.base = self.base.checked_add(base)?;
         Ok(self)
     }
 
     /// Subtract `elastic` and `base` from self.
-    pub fn sub_self(&mut self, elastic: Uint256, base: Uint256) -> StdResult<& mut Self> {
+    pub fn sub_self(&mut self, elastic: Uint256, base: Uint256) -> StdResult<&mut Self> {
         self.elastic = self.elastic.checked_sub(elastic)?;
         self.base = self.base.checked_sub(base)?;
         Ok(self)
@@ -116,7 +130,9 @@ fn test_rebase_math() {
 #[test]
 fn test_vault_rebase_math() {
     let mut total_borrowed = Rebase::new();
-    total_borrowed.add_base(Uint256::from(320u128), false).unwrap();
+    total_borrowed
+        .add_base(Uint256::from(320u128), false)
+        .unwrap();
     assert_eq!(
         Uint256::from(1u128),
         total_borrowed.elastic.div(total_borrowed.base)

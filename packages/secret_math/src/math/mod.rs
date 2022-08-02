@@ -2,12 +2,12 @@
 //! Uses U256 and I256 for better performance.
 pub mod asm;
 pub mod core;
-pub mod sd59x18;
-pub mod ud60x18;
-pub(crate) mod tens;
 mod rebase;
+pub mod sd59x18;
+pub(crate) mod tens;
+pub mod ud60x18;
 
-use ethnum::{U256};
+use ethnum::U256;
 
 pub use rebase::*;
 
