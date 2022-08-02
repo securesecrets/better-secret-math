@@ -443,11 +443,8 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     ///
     /// @param x - integer between 0 and 32
     ///
-    /// @return result The common logarithm as an unsigned 60.18-decimal fixed-point number.
-    pub fn exp10(x: u32) -> U256 {
-        // Note that the "mul" in this block is the assembly multiplication operation, not the "mul" function defined
-        // in this contract.
-        // prettier-ignore
+    /// @return result 10^x as U256
+    pub const fn exp10(x: u32) -> U256 {
             match x {
                 0 => QUINTILLIONTH,
                 1 => HUN_QUADTH,
