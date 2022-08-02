@@ -26,7 +26,7 @@ pub fn lt(x: U256, y: U256) -> U256 {
     }
 }
 
-fn u_sub(x: U256, y: U256) -> U256 {
+pub fn u_sub(x: U256, y: U256) -> U256 {
     x - y
 }
 
