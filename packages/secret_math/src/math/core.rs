@@ -366,7 +366,7 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
 
     let mm = mulmod(x, y, U256::ZERO.not());
     prod0 = mul(x, y);
-    prod1 = sub(sub(mm, prod0), lt(mm, prod0));
+    prod1 = u_sub(u_sub(mm, prod0), lt(mm, prod0));
 
     // Handle non-overflow cases, 256 by 256 division.
     if (prod1 == 0) {
@@ -389,13 +389,13 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     // 512 by 256 division.
     ///////////////////////////////////////////////
 
-    // Make division exact by subtracting the remainder from [prod1 prod0].
+    // Make division exact by u_subtracting the remainder from [prod1 prod0].
     // Compute remainder using mulmod.
     let remainder = mulmod(x, y, denominator);
 
-    // Subtract 256 bit number from 512 bit number.
-    prod1 = sub(prod1, gt(remainder, prod0));
-    prod0 = sub(prod0, remainder);
+    // u_subtract 256 bit number from 512 bit number.
+    prod1 = u_sub(prod1, gt(remainder, prod0));
+    prod0 = u_sub(prod0, remainder);
 
     // Factor powers of two out of denominator and compute largest power of two divisor of denominator. Always >= 1.
     // See https://cs.stackexchange.com/q/138556/92363.
@@ -408,7 +408,7 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     prod0 = div(prod0, lpotdod);
 
     // Flip lpotdod such that it is 2^256 / lpotdod. If lpotdod is zero, then it becomes one.
-    lpotdod = add(div(sub(U256::ZERO, lpotdod), lpotdod), U256::ONE);
+    lpotdod = add(div(u_sub(U256::ZERO, lpotdod), lpotdod), U256::ONE);
 
     // Shift in bits from prod1 into prod0.
     prod0 |= prod1 * lpotdod;

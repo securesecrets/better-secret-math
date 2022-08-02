@@ -4,10 +4,12 @@ pub mod asm;
 pub mod core;
 pub mod sd59x18;
 pub mod ud60x18;
+mod constants;
 mod rebase;
 
 use ethnum::{U256};
 
+pub use constants::TEN;
 pub use rebase::*;
 
 /// 10^36 or 1e36
