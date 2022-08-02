@@ -2,7 +2,7 @@
 //!
 //! Based off https://github.com/paulrberg/prb-math/blob/main/contracts/PRBMathSD59x18.sol.
 
-use crate::asm::mul;
+use crate::{asm::mul, core::most_significant_bit};
 
 use super::{
     asm::gt, core, MAX_UD60x18, MAX_WHOLE_UD60x18, SCALE_u128, DOUBLE_SCALE, HALF_SCALE, LOG2_E,
@@ -158,6 +158,44 @@ pub fn assert_with_precision(actual: U256, expected: U256, error: U256 ) {
     );
 }
 
+pub fn log2(x: U256) -> StdResult<U256> {
+    if (x < SCALE) {
+        return Err(StdError::generic_err("PRBMathUD60x18 LogInputTooSmall"));
+    }
+        // Calculate the integer part of the logarithm and add it to the result and finally calculate y = x * 2^(-n).
+        let n = most_significant_bit(x / SCALE);
+
+        // The integer part of the logarithm as an unsigned 60.18-decimal fixed-point number. The operation can't overflow
+        // because n is maximum 255 and SCALE is 1e18.
+        let mut result = n * SCALE;
+
+        // This is y = x * 2^(-n).
+        let mut y = x >> n;
+
+        // If y = 1, the fractional part is zero.
+        if (y == SCALE) {
+            return Ok(result);
+        }
+
+        // Calculate the fractional part via the iterative approximation.
+        // The "delta >>= 1" part is equivalent to "delta /= 2", but shifting bits is faster.
+        let mut delta = HALF_SCALE;
+        while delta > 0 {
+            y = (y * y) / SCALE;
+
+            // Is y^2 > 2 and so in the range [2,4)?
+            if y >= 2 * SCALE {
+                // Add the 2^(-m) factor to the logarithm.
+                result += delta;
+
+                // Corresponds to z/2 on Wikipedia.
+                y >>= 1;
+            }
+            delta >>= 1;
+        }
+        Ok(result)
+}
+
     /// @notice Calculates the common logarithm of x.
     ///
     /// @dev First checks if x is an exact power of ten and it stops if yes. If it's not, calculates the common
@@ -262,7 +300,7 @@ pub fn assert_with_precision(actual: U256, expected: U256, error: U256 ) {
             }
 
         if result == MAX_UD60x18 {
-            result = (log2(x) * SCALE) / 3_321928094887362347;
+            result = (log2(x)? * SCALE) / 3_321928094887362347;
         }
         Ok(result)
     }
