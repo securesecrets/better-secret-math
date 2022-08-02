@@ -82,4 +82,15 @@ pub const HUN_OCTOD: U256 = U256::from_words(0xDD15FE86AFFAD91249EF0EB713F39EBE,
 
 mod test {
     use super::*;
+
+    #[test]
+    pub fn test_const() {
+        //let mut string = "10000000000000000000000000000000000000000000000000000000".to_string();
+        //for i in 0..22 {
+            let expected = U256::from_str_prefixed("1000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
+            //println!("{} {}", expected.0[1], expected.0[0]);
+            //string.push_str("0");
+        //}
+        assert_eq!(expected, OCTOD)
+    }
 }
