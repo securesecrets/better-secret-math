@@ -1,10 +1,11 @@
 //! Common mathematical functions used in ud60x18 and sd59x18. Note that this shared library does not always assume the unsigned 60.18-decimal fixed-point representation. When it does not, it is explicitly mentioned in the documentation.
 //! Forks methods from here - https://github.com/paulrberg/prb-math/blob/main/contracts/PRBMath.sol.
+use core::panic;
 use std::ops::Not;
 
 use super::asm::*;
 use cosmwasm_std::{OverflowError, OverflowOperation, StdError, StdResult};
-use super::constants::*;
+use super::tens::*;
 
 use ethnum::U256;
 const SCALE: U256 = U256::new(1_000_000_000_000_000_000u128);
@@ -440,7 +441,7 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     /// Gets the result of 10^x in constant time. Used for precision calculations (i.e. normalizing different token amounts
     /// based off their decimals).
     ///
-    /// @param x - integer between 1 and 18
+    /// @param x - integer between 0 and 18
     ///
     /// @return result The common logarithm as an unsigned 60.18-decimal fixed-point number.
     pub fn e10(x: u32) -> U256 {
@@ -448,5 +449,27 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
         // in this contract.
         // prettier-ignore
             match x {
-                1 => TEN
+                0 => QUINTILLIONTH,
+                1 => HUN_QUADTH,
+                2 => TEN_QUADTH,
+                3 => QUADTH,
+                4 => HUN_TRILTH,
+                5 => TEN_TRILTH,
+                6 => TRILTH,
+                7 => HUN_BILTH,
+                8 => TEN_BILTH,
+                9 => BILTH,
+                10 => HUN_MILTH,
+                11 => TEN_MILTH,
+                12 => MILTH,
+                13 => HUN_THOUSANDTH,
+                14 => TEN_THOUSANDTH,
+                15 => THOUSANDTH,
+                16 => HUNDREDTH,
+                17 => TENTH,
+                18 => ONE,
+                19 => TEN,
+                _ => panic!("Not using this correctly :|"),
+            }
+        }
 
