@@ -76,7 +76,9 @@ impl BtrRebase {
     pub fn sub_elastic(&mut self, elastic: U256, round_up: bool) -> StdResult<(&mut Self, U256)> {
         let base = self.to_base(elastic, round_up)?;
         self.elastic = checked_sub(self.elastic, elastic)?;
-        self.base = checked_sub(self.base, base)?;
+        // The amount we are subtracting from elastic and base are proportional in this function
+        // so if we pass the checked_sub above, we don't need to check again.
+        self.base -= base;
         Ok((self, base))
     }
 
@@ -92,21 +94,9 @@ impl BtrRebase {
     pub fn sub_base(&mut self, base: U256, round_up: bool) -> StdResult<(&mut Self, U256)> {
         let elastic = self.to_elastic(base, round_up)?;
         self.elastic = checked_sub(self.elastic, elastic)?;
-        self.base = checked_sub(self.base, base)?;
+        // The amount we are subtracting from elastic and base are proportional in this function
+        // so if we pass the checked_sub above, we don't need to check again.
+        self.base -= base;
         Ok((self, elastic))
-    }
-
-    /// Add `elastic` and `base` to self.
-    pub fn add_self(&mut self, elastic: U256, base: U256) -> StdResult<&mut Self> {
-        self.elastic = checked_add(self.elastic, elastic)?;
-        self.base = checked_add(self.base, base)?;
-        Ok(self)
-    }
-
-    /// Subtract `elastic` and `base` from self.
-    pub fn sub_self(&mut self, elastic: U256, base: U256) -> StdResult<&mut Self> {
-        self.elastic = checked_sub(self.elastic, elastic)?;
-        self.base = checked_sub(self.base, base)?;
-        Ok(self)
     }
 }
