@@ -562,12 +562,47 @@ mod test {
     use super::*;
 
     #[test]
-    fn test() {
+    fn test_const() {
         let int2 = U256::from_str_prefixed(
             "78156646155174841979727994598816262306175212592076161876661508869554232690281",
         )
         .unwrap();
         assert_eq!(SCALE_INVERSE, int2);
+    }
+
+    #[test]
+    fn test_checked_err() {
+        let max = U256::MAX;
+        let one = U256::ONE;
+        assert!(checked_add(max, one).is_err());
+        assert!(checked_sub(one, max).is_err());
+    }
+
+    #[rstest]
+    #[case("12000", "12000", "12000")]
+    #[case("11", "13", "12")]
+    fn test_avg(#[case] x: U256, #[case] y: U256, #[case] xavgy: U256) {
+        assert_eq!(avg(x, y), xavgy);
+    }
+
+    #[rstest]
+    #[case("20", "10", "10")]
+    #[case("1", "9999", "9998")]
+    fn test_abs_diff(#[case] x: U256, #[case] y: U256, #[case] expected: U256) {
+        assert_eq!(abs_diff(x, y), expected);
+    }
+
+    #[rstest]
+    #[case("19318389123", "1319320194941", "219031831291", "116362725698")]
+    fn test_muldiv(#[case] x: U256, #[case] y: U256, #[case] denom: U256, #[case] expected: U256) {
+        assert_eq!(muldiv(x, y, denom).unwrap(), expected);
+    }
+
+    #[rstest]
+    #[case("12443", "443", "12000", "12886")]
+    fn test_checked_ok(#[case] x: U256, #[case] y: U256, #[case] xsuby: U256, #[case] xaddy: U256) {
+        assert_eq!(checked_add(x, y).unwrap(), xaddy);
+        assert_eq!(checked_sub(x, y).unwrap(), xsuby);
     }
 
     #[rstest]
