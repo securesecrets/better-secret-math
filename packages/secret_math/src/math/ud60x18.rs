@@ -459,7 +459,9 @@ mod test {
     #[rstest]
     #[case("2324323.0", "2323442.23", "5400430214360.29")]
     fn test_mul(#[case] x: Decimal256, #[case] y: Decimal256, #[case] xy: Decimal256) {
+        assert_eq!(xy, x.checked_mul(y).unwrap());
         let xy: U256 = xy.into();
-        assert_eq!(xy, mul(x.into(), y.into()).unwrap())
+        assert_eq!(xy, muldiv(x.into(), y.into(), SCALE).unwrap());
+        assert_eq!(xy, mul(x.into(), y.into()).unwrap());
     }
 }

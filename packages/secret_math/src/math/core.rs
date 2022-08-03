@@ -30,12 +30,8 @@ pub fn checked_add(x: U256, y: U256) -> StdResult<U256> {
 }
 
 pub fn checked_sub(x: U256, y: U256) -> StdResult<U256> {
-    let (a, b) = x.overflowing_sub(y);
-    if b {
-        Err(StdError::Overflow { source: OverflowError::new(OverflowOperation::Sub, x, y) })
-    } else {
-        Ok(a)
-    }
+    if y > x { Err(StdError::Overflow { source: OverflowError::new(OverflowOperation::Sub, x, y) }) }
+    else { Ok(x - y) }
 }
 
 /// Calculates the arithmetic average of x and y, rounding down.

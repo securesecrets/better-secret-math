@@ -1,4 +1,4 @@
-use better_secret_math::{core::muldiv, SCALE_u128, SCALE, ud60x18::mul};
+use better_secret_math::{core::{muldiv, muldiv_fp}, SCALE_u128, SCALE, ud60x18::mul};
 use cosmwasm_std::{Decimal256, OverflowError, StdResult, Uint256};
 use criterion::{black_box, criterion_group, Criterion};
 use ethnum::{I256, U256};
@@ -33,11 +33,15 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let sml = [
         U256::from(0x000025a13a5aa_u128),
         U256::from(0x0000000000000082991369928_u128),
+        U256::from(0x1EEE6A1E77D9838707Fu128),
+        U256::from(0x28BE875E01341EA89311u128),
     ];
 
     let sml_uint = [
         Uint256::from_u128(0x000025a13a5aa_u128),
         Uint256::from_u128(0x0000000000000082991369928_u128),
+        Uint256::from_u128(0x1EEE6A1E77D9838707Fu128),
+        Uint256::from_u128(0x28BE875E01341EA89311u128),
     ];
 
     group.bench_function("U256::mul", |b| {
@@ -86,13 +90,21 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Muldiv");
 
     group.bench_function("U256::muldiv", |b| {
-        b.iter(|| black_box(muldiv(sml[0], sml[1], SCALE)))
+        b.iter(|| black_box(muldiv(sml[2], sml[3], SCALE)))
     });
 
     group.bench_function("Uint256::multiply_ratio", |b| {
         b.iter(|| {
-            black_box(sml_uint[0].multiply_ratio(sml_uint[1], Uint256::from_u128(SCALE_u128)))
+            black_box(sml_uint[2].multiply_ratio(sml_uint[3], Uint256::from_u128(SCALE_u128)))
         })
+    });
+
+    group.bench_function("Decimal256::checked_mul", |b| {
+        b.iter(|| black_box(Decimal256::new(sml_uint[2]).checked_mul(Decimal256::new(sml_uint[3]))))
+    });
+
+    group.bench_function("U256::muldiv_fp", |b| {
+        b.iter(|| black_box(muldiv_fp(sml[2], sml[3])))
     });
 
     group.finish();
