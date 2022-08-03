@@ -1,4 +1,4 @@
-use better_secret_math::{core::muldiv, SCALE_u128, SCALE};
+use better_secret_math::{core::muldiv, SCALE_u128, SCALE, ud60x18::mul};
 use cosmwasm_std::{Decimal256, OverflowError, StdResult, Uint256};
 use criterion::{black_box, criterion_group, Criterion};
 use ethnum::{I256, U256};
@@ -23,6 +23,10 @@ fn checked_math(x: Uint256, y: Uint256) -> Uint256 {
     )
 }
 
+fn mul_muldiv(x: U256, y: U256) -> StdResult<U256> {
+    mul(mul(mul(x, y)?, y)?, y)
+}
+
 pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Mul");
 
@@ -38,6 +42,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
 
     group.bench_function("U256::mul", |b| {
         b.iter(|| black_box(sml[0]) * black_box(sml[1]) * black_box(sml[1]) * black_box(sml[1]))
+    });
+
+    group.bench_function("U256::mul via muldiv", |b| {
+        b.iter(|| mul_muldiv(black_box(sml[0]), black_box(sml[1])))
     });
 
     group.bench_function("Uint256::mul", |b| {

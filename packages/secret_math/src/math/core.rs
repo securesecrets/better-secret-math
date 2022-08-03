@@ -20,6 +20,24 @@ pub fn is_odd(x: U256) -> bool {
     x & 1 == 1
 }
 
+pub fn checked_add(x: U256, y: U256) -> StdResult<U256> {
+    let (a, b) = x.overflowing_add(y);
+    if b {
+        Err(StdError::Overflow { source: OverflowError::new(OverflowOperation::Add, x, y) })
+    } else {
+        Ok(a)
+    }
+}
+
+pub fn checked_sub(x: U256, y: U256) -> StdResult<U256> {
+    let (a, b) = x.overflowing_sub(y);
+    if b {
+        Err(StdError::Overflow { source: OverflowError::new(OverflowOperation::Sub, x, y) })
+    } else {
+        Ok(a)
+    }
+}
+
 /// Calculates the arithmetic average of x and y, rounding down.
 pub fn avg(x: U256, y: U256) -> U256 {
     // This can never overflow.
@@ -542,6 +560,9 @@ pub const fn exp10(x: u8) -> U256 {
 
     #[cfg(test)]
 mod test {
+    use cosmwasm_std::Decimal256;
+    use rstest::*;
+
     use super::*;
 
     #[test]
@@ -551,5 +572,14 @@ mod test {
         )
         .unwrap();
         assert_eq!(SCALE_INVERSE, int2);
+    }
+
+    #[rstest]
+    #[case("0", false)]
+    #[case("2323421", true)]
+    #[case("232323232320", false)]
+    fn test_is_odd(#[case] x: U256, #[case] expected: bool) {
+        let actual = is_odd(x);
+        assert_eq!(actual, expected);
     }
 }

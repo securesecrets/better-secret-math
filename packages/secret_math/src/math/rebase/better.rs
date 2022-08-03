@@ -2,7 +2,7 @@ use cosmwasm_std::StdResult;
 use ethnum::U256;
 use std::ops::{Add, Div};
 
-use crate::core::muldiv;
+use crate::core::{muldiv, checked_sub, checked_add};
 
 use super::Rebase;
 
@@ -67,46 +67,46 @@ impl BtrRebase {
     /// Add `elastic` to `self` and update `total.base`
     pub fn add_elastic(&mut self, elastic: U256, round_up: bool) -> StdResult<(&mut Self, U256)> {
         let base = self.to_base(elastic, round_up)?;
-        self.elastic += elastic;
-        self.base += base;
+        self.elastic = checked_add(self.elastic, elastic)?;
+        self.base = checked_add(self.base, base)?;
         Ok((self, base))
     }
 
     /// Sub `elastic` from `self` and update `total.base`
     pub fn sub_elastic(&mut self, elastic: U256, round_up: bool) -> StdResult<(&mut Self, U256)> {
         let base = self.to_base(elastic, round_up)?;
-        self.elastic -= elastic;
-        self.base -= base;
+        self.elastic = checked_sub(self.elastic, elastic)?;
+        self.base = checked_sub(self.base, base)?;
         Ok((self, base))
     }
 
     /// Add `base` to `total` and update `self.elastic`
     pub fn add_base(&mut self, base: U256, round_up: bool) -> StdResult<(&mut Self, U256)> {
         let elastic = self.to_elastic(base, round_up)?;
-        self.elastic += elastic;
-        self.base += base;
+        self.elastic = checked_add(self.elastic, elastic)?;
+        self.base = checked_add(self.base, base)?;
         Ok((self, elastic))
     }
 
     /// Sub `base` from `total` and update `self.elastic`
     pub fn sub_base(&mut self, base: U256, round_up: bool) -> StdResult<(&mut Self, U256)> {
         let elastic = self.to_elastic(base, round_up)?;
-        self.elastic -= elastic;
-        self.base -= base;
+        self.elastic = checked_sub(self.elastic, elastic)?;
+        self.base = checked_sub(self.base, base)?;
         Ok((self, elastic))
     }
 
     /// Add `elastic` and `base` to self.
     pub fn add_self(&mut self, elastic: U256, base: U256) -> StdResult<&mut Self> {
-        self.elastic += elastic;
-        self.base += base;
+        self.elastic = checked_add(self.elastic, elastic)?;
+        self.base = checked_add(self.base, base)?;
         Ok(self)
     }
 
     /// Subtract `elastic` and `base` from self.
     pub fn sub_self(&mut self, elastic: U256, base: U256) -> StdResult<&mut Self> {
-        self.elastic -= elastic;
-        self.base -= base;
+        self.elastic = checked_sub(self.elastic, elastic)?;
+        self.base = checked_sub(self.base, base)?;
         Ok(self)
     }
 }

@@ -455,4 +455,11 @@ mod test {
         assert_eq!(pow(x, two).unwrap(), xpow2);
         assert_eq!(sqrt(xpow2).unwrap(), x);
     }
+
+    #[rstest]
+    #[case("2324323.0", "2323442.23", "5400430214360.29")]
+    fn test_mul(#[case] x: Decimal256, #[case] y: Decimal256, #[case] xy: Decimal256) {
+        let xy: U256 = xy.into();
+        assert_eq!(xy, mul(x.into(), y.into()).unwrap())
+    }
 }
