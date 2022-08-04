@@ -74,14 +74,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Conversion");
 
     group.bench_function("U256::to_be_bytes", |b| {
-        b.iter(|| black_box(U256::from_be_bytes(sml_uint[1].to_be_bytes())))
+        b.iter(|| U256::from_be_bytes(black_box(sml_uint[1].to_be_bytes())))
     });
 
     group.bench_function("U256::decimals", |b| {
         b.iter(|| {
-            black_box(U256::from_be_bytes(
-                Decimal256::new(sml_uint[1]).atomics().to_be_bytes(),
-            ))
+            U256::from_be_bytes(
+                black_box(Decimal256::new(sml_uint[1]).atomics().to_be_bytes())
+            )
         })
     });
 
@@ -90,21 +90,22 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Muldiv");
 
     group.bench_function("U256::muldiv", |b| {
-        b.iter(|| black_box(muldiv(sml[2], sml[3], SCALE)))
+        b.iter(|| muldiv(black_box(sml[2]), black_box(sml[3]), black_box(SCALE)))
     });
 
     group.bench_function("Uint256::multiply_ratio", |b| {
         b.iter(|| {
-            black_box(sml_uint[2].multiply_ratio(sml_uint[3], Uint256::from_u128(SCALE_u128)))
+            black_box(sml_uint[2]).multiply_ratio(black_box(sml_uint[3]), black_box(Uint256::from_u128(SCALE_u128)))
         })
     });
 
     group.bench_function("Decimal256::checked_mul", |b| {
-        b.iter(|| black_box(Decimal256::new(sml_uint[2]).checked_mul(Decimal256::new(sml_uint[3]))))
+        b.iter(|| { Decimal256::new(black_box(sml_uint[2])).checked_mul(Decimal256::new(black_box(sml_uint[3])))
+        })
     });
 
     group.bench_function("U256::muldiv_fp", |b| {
-        b.iter(|| black_box(muldiv_fp(sml[2], sml[3])))
+        b.iter(|| muldiv_fp(black_box(sml[2]), black_box(sml[3])))
     });
 
     group.finish();
