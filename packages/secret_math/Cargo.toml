@@ -21,7 +21,7 @@ cosmwasm-schema = { git = "https://github.com/CosmWasm/cosmwasm", commit = "1e05
 schemars = "0.8.9"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = "1.0"
-ethnum = { git = "https://github.com/securesecrets/ethnum-rs", features = ["serde"] }
+ethnum = { git = "https://github.com/securesecrets/ethnum-rs" }
 
 [dev-dependencies]
 rstest = "0.15.0"
