@@ -4,16 +4,23 @@ use crate::{
     core::{checked_add, checked_sub, muldiv},
     make_btr,
 };
+use btr_macros::Btr;
 use cosmwasm_std::StdResult;
 use cosmwasm_std::Uint256;
 use ethnum::U256;
 
-make_btr! {
-    Rebase {
-        elastic: Uint256, U256, "";
-        base: Uint256, U256, ""
-    }
+#[derive(Btr)]
+pub struct Rebase {
+    pub elastic: Uint256,
+    pub base: Uint256,
 }
+
+// make_btr! {
+//     Rebase {
+//         elastic: Uint256, U256, "";
+//         base: Uint256, U256, ""
+//     }
+// }
 
 impl Default for Rebase {
     fn default() -> Self {
