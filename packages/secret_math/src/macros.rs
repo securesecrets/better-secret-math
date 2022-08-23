@@ -1,3 +1,28 @@
+/// Usage:
+/// ```
+/// make_btr!{
+///     Rebase {
+///        elastic: Uint256, U256, "";
+///        base: Uint256, U256, ""
+///     }
+/// }
+///
+/// pub struct BtrRebase {
+///  pub elastic: U256,
+///  pub base: U256,
+/// }
+///
+/// pub struct Rebase {
+///  pub elastic: Uint256,
+///  pub base: Uint256,
+/// }
+/// ```
+/// The two structs above also derive from using the [derive-from-ext] crate.
+///
+///
+///
+///
+///
 #[macro_export]
 macro_rules! make_btr {
     ($(#[$meta:meta])* $struct:ident {$($element: ident: $ty: ty, $btr_ty: ty, $doc:expr); *}) => {
@@ -34,7 +59,11 @@ macro_rules! make_btr {
 }
 
 /// Creates a set of vector structs
-/// that have the item (2nd arg) in them.
+/// that have the item (2nd arg) in them that can be converted between.
+///
+/// **Usage:** impl_btr_vec!(Liquidations, Liquidation);
+///
+/// Creates two vectors (Liquidations, BtrLiquidations) each with field `items` of type Vec<Liquidation> and Vec<BtrLiquidation>.
 #[macro_export]
 macro_rules! impl_btr_vec {
     ($struct:ident, $item:ident) => {
