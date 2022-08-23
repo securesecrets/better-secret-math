@@ -9,11 +9,14 @@ use cosmwasm_std::{OverflowError, OverflowOperation, StdError, StdResult};
 
 use ethnum::U256;
 const SCALE: U256 = U256::new(1_000_000_000_000_000_000u128);
-    /// Largest power of two divisor of SCALE.
-    const SCALE_LPOTD: U256 = U256::new(262144u128);
+/// Largest power of two divisor of SCALE.
+const SCALE_LPOTD: U256 = U256::new(262144u128);
 
-        /// SCALE inverted mod 2^256.
-        const SCALE_INVERSE: U256 = U256::from_words(229681740086561209518615317264092320238, 298919117238935307856972083127780443753);
+/// SCALE inverted mod 2^256.
+const SCALE_INVERSE: U256 = U256::from_words(
+    229681740086561209518615317264092320238,
+    298919117238935307856972083127780443753,
+);
 
 /// Finds whether or not some Uint256 is odd.
 pub fn is_odd(x: U256) -> bool {
@@ -23,15 +26,22 @@ pub fn is_odd(x: U256) -> bool {
 pub fn checked_add(x: U256, y: U256) -> StdResult<U256> {
     let (a, b) = x.overflowing_add(y);
     if b {
-        Err(StdError::Overflow { source: OverflowError::new(OverflowOperation::Add, x, y) })
+        Err(StdError::Overflow {
+            source: OverflowError::new(OverflowOperation::Add, x, y),
+        })
     } else {
         Ok(a)
     }
 }
 
 pub fn checked_sub(x: U256, y: U256) -> StdResult<U256> {
-    if y > x { Err(StdError::Overflow { source: OverflowError::new(OverflowOperation::Sub, x, y) }) }
-    else { Ok(x - y) }
+    if y > x {
+        Err(StdError::Overflow {
+            source: OverflowError::new(OverflowOperation::Sub, x, y),
+        })
+    } else {
+        Ok(x - y)
+    }
 }
 
 /// Calculates the arithmetic average of x and y, rounding down.
@@ -506,55 +516,60 @@ pub const fn exp10(x: u8) -> U256 {
     }
 }
 
-    /// @notice Calculates floor(x*y÷1e18) with full precision.
-    ///
-    /// @dev Variant of "mulDiv" with constant folding, i.e. in which the denominator is always 1e18. Before returning the
-    /// final result, we add 1 if (x * y) % SCALE >= HALF_SCALE. Without this, 6.6e-19 would be truncated to 0 instead of
-    /// being rounded to 1e-18.  See "Listing 6" and text above it at https://accu.org/index.php/journals/1717.
-    ///
-    /// Requirements:
-    /// - The result must fit within uint256.
-    ///
-    /// Caveats:
-    /// - The body is purposely left uncommented; see the NatSpec comments in "PRBMath.mulDiv" to understand how this works.
-    /// - It is assumed that the result can never be type(uint256).max when x and y solve the following two equations:
-    ///     1. x * y = type(uint256).max * SCALE
-    ///     2. (x * y) % SCALE >= SCALE / 2
-    ///
-    /// @param x The multiplicand as an unsigned 60.18-decimal fixed-point number.
-    /// @param y The multiplier as an unsigned 60.18-decimal fixed-point number.
-    /// @return result The result as an unsigned 60.18-decimal fixed-point number.
-    pub fn muldiv_fp(x: U256, y: U256) -> StdResult<U256> {
-            let mm = mulmod(x, y, !U256::ZERO);
-            let prod0 = mul(x, y);
-            let prod1 = u_sub(u_sub(mm, prod0), lt(mm, prod0));
+/// @notice Calculates floor(x*y÷1e18) with full precision.
+///
+/// @dev Variant of "mulDiv" with constant folding, i.e. in which the denominator is always 1e18. Before returning the
+/// final result, we add 1 if (x * y) % SCALE >= HALF_SCALE. Without this, 6.6e-19 would be truncated to 0 instead of
+/// being rounded to 1e-18.  See "Listing 6" and text above it at https://accu.org/index.php/journals/1717.
+///
+/// Requirements:
+/// - The result must fit within uint256.
+///
+/// Caveats:
+/// - The body is purposely left uncommented; see the NatSpec comments in "PRBMath.mulDiv" to understand how this works.
+/// - It is assumed that the result can never be type(uint256).max when x and y solve the following two equations:
+///     1. x * y = type(uint256).max * SCALE
+///     2. (x * y) % SCALE >= SCALE / 2
+///
+/// @param x The multiplicand as an unsigned 60.18-decimal fixed-point number.
+/// @param y The multiplier as an unsigned 60.18-decimal fixed-point number.
+/// @return result The result as an unsigned 60.18-decimal fixed-point number.
+pub fn muldiv_fp(x: U256, y: U256) -> StdResult<U256> {
+    let mm = mulmod(x, y, !U256::ZERO);
+    let prod0 = mul(x, y);
+    let prod1 = u_sub(u_sub(mm, prod0), lt(mm, prod0));
 
-        if prod1 >= SCALE {
-            return Err(StdError::generic_err(format!("PRBMath__MulDivFixedPointOverflow {}", prod1)));
-        }
-
-            let remainder = mulmod(x, y, SCALE);
-            let round_up_unit = gt(remainder, U256::new(499999999999999999u128));
-
-        if prod1 == 0 {
-                let result = (prod0 / SCALE) + round_up_unit;
-                return Ok(result);
-        }
-
-            Ok(add(
-                mul(
-                    or(
-                        div(u_sub(prod0, remainder), SCALE_LPOTD),
-                        mul(u_sub(prod1, gt(remainder, prod0)), add(div(u_sub(U256::ZERO, SCALE_LPOTD), SCALE_LPOTD), U256::ONE))
-                    ),
-                    SCALE_INVERSE
-                ),
-                round_up_unit
-            ))
+    if prod1 >= SCALE {
+        return Err(StdError::generic_err(format!(
+            "PRBMath__MulDivFixedPointOverflow {}",
+            prod1
+        )));
     }
 
+    let remainder = mulmod(x, y, SCALE);
+    let round_up_unit = gt(remainder, U256::new(499999999999999999u128));
 
-    #[cfg(test)]
+    if prod1 == 0 {
+        let result = (prod0 / SCALE) + round_up_unit;
+        return Ok(result);
+    }
+
+    Ok(add(
+        mul(
+            or(
+                div(u_sub(prod0, remainder), SCALE_LPOTD),
+                mul(
+                    u_sub(prod1, gt(remainder, prod0)),
+                    add(div(u_sub(U256::ZERO, SCALE_LPOTD), SCALE_LPOTD), U256::ONE),
+                ),
+            ),
+            SCALE_INVERSE,
+        ),
+        round_up_unit,
+    ))
+}
+
+#[cfg(test)]
 mod test {
     use cosmwasm_std::Decimal256;
     use rstest::*;

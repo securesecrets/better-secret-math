@@ -34,119 +34,134 @@ pub fn pow(x: I256, y: I256) -> StdResult<I256> {
         if y == 0 {
             return Ok(SCALE);
         } else {
-                return Ok(I256::ZERO);
-            }
+            return Ok(I256::ZERO);
+        }
     } else {
         exp2(mul(log2(x)?, y)?)
     }
 }
 
-   /// @notice Multiplies two signed 59.18-decimal fixed-point numbers together, returning a new signed 59.18-decimal
-    /// fixed-point number.
-    ///
-    /// @dev Variant of "mulDiv" that works with signed numbers and employs constant folding, i.e. the denominator is
-    /// always 1e18.
-    ///
-    /// Requirements:
-    /// - All from "PRBMath.mulDivFixedPoint".
-    /// - None of the inputs can be MIN_SD59x18
-    /// - The result must fit within MAX_SD59x18.
-    ///
-    /// Caveats:
-    /// - The body is purposely left uncommented; see the NatSpec comments in "PRBMath.mulDiv" to understand how this works.
-    ///
-    /// @param x The multiplicand as a signed 59.18-decimal fixed-point number.
-    /// @param y The multiplier as a signed 59.18-decimal fixed-point number.
-    /// @return result The product as a signed 59.18-decimal fixed-point number.
-    pub fn mul(x: I256, y: I256) -> StdResult<I256> {
-        if (x == MIN_SD59x18 || y == MIN_SD59x18) {
-            return Err(StdError::generic_err(format!("PRBMathSD59x18_MulInputTooSmall {}", x)));
-        }
-
-            let ax: U256;
-            let ay: U256;
-            ax = if x < 0 { (-x).as_u256() } else { x.as_u256() };
-            ay = if y < 0 { (-y).as_u256() } else { y.as_u256() };
-
-            let r_abs = muldiv_fp(ax, ay)?;
-            if (r_abs > MAX_SD59x18.as_u256()) {
-                return Err(StdError::generic_err(format!("PRBMathSD59x18__MulOverflow {}", r_abs)));
-
-            }
-
-            let sx = sgt(x, sub(U256::ZERO, U256::ONE));
-            let sy = sgt(y, sub(U256::ZERO, U256::ONE));
-
-            let result = if sx ^ sy == 1 { r_abs.as_i256() * I256::MINUS_ONE } else { r_abs.as_i256() };
-            Ok(result)
+/// @notice Multiplies two signed 59.18-decimal fixed-point numbers together, returning a new signed 59.18-decimal
+/// fixed-point number.
+///
+/// @dev Variant of "mulDiv" that works with signed numbers and employs constant folding, i.e. the denominator is
+/// always 1e18.
+///
+/// Requirements:
+/// - All from "PRBMath.mulDivFixedPoint".
+/// - None of the inputs can be MIN_SD59x18
+/// - The result must fit within MAX_SD59x18.
+///
+/// Caveats:
+/// - The body is purposely left uncommented; see the NatSpec comments in "PRBMath.mulDiv" to understand how this works.
+///
+/// @param x The multiplicand as a signed 59.18-decimal fixed-point number.
+/// @param y The multiplier as a signed 59.18-decimal fixed-point number.
+/// @return result The product as a signed 59.18-decimal fixed-point number.
+pub fn mul(x: I256, y: I256) -> StdResult<I256> {
+    if (x == MIN_SD59x18 || y == MIN_SD59x18) {
+        return Err(StdError::generic_err(format!(
+            "PRBMathSD59x18_MulInputTooSmall {}",
+            x
+        )));
     }
 
-    /// @notice Calculates the natural exponent of x.
-    ///
-    /// @dev Based on the insight that e^x = 2^(x * log2(e)).
-    ///
-    /// Requirements:
-    /// - All from "log2".
-    /// - x must be less than 133.084258667509499441.
-    ///
-    /// Caveats:
-    /// - All from "exp2".
-    /// - For any x less than -41.446531673892822322, the result is zero.
-    ///
-    /// @param x The exponent as a signed 59.18-decimal fixed-point number.
-    /// @return result The result as a signed 59.18-decimal fixed-point number.
-    pub fn exp(x: I256) -> StdResult<I256> {
-        // Without this check, the value passed to "exp2" would be less than -59.794705707972522261.
-        if (x < -41_446531673892822322) {
+    let ax: U256;
+    let ay: U256;
+    ax = if x < 0 { (-x).as_u256() } else { x.as_u256() };
+    ay = if y < 0 { (-y).as_u256() } else { y.as_u256() };
+
+    let r_abs = muldiv_fp(ax, ay)?;
+    if (r_abs > MAX_SD59x18.as_u256()) {
+        return Err(StdError::generic_err(format!(
+            "PRBMathSD59x18__MulOverflow {}",
+            r_abs
+        )));
+    }
+
+    let sx = sgt(x, sub(U256::ZERO, U256::ONE));
+    let sy = sgt(y, sub(U256::ZERO, U256::ONE));
+
+    let result = if sx ^ sy == 1 {
+        r_abs.as_i256() * I256::MINUS_ONE
+    } else {
+        r_abs.as_i256()
+    };
+    Ok(result)
+}
+
+/// @notice Calculates the natural exponent of x.
+///
+/// @dev Based on the insight that e^x = 2^(x * log2(e)).
+///
+/// Requirements:
+/// - All from "log2".
+/// - x must be less than 133.084258667509499441.
+///
+/// Caveats:
+/// - All from "exp2".
+/// - For any x less than -41.446531673892822322, the result is zero.
+///
+/// @param x The exponent as a signed 59.18-decimal fixed-point number.
+/// @return result The result as a signed 59.18-decimal fixed-point number.
+pub fn exp(x: I256) -> StdResult<I256> {
+    // Without this check, the value passed to "exp2" would be less than -59.794705707972522261.
+    if (x < -41_446531673892822322) {
+        return Ok(I256::ZERO);
+    }
+
+    // Without this check, the value passed to "exp2" would be greater than 192.
+    if (x >= 133_084258667509499441) {
+        return Err(StdError::generic_err(format!(
+            "PRBMathSD59x18__ExpInputTooBig {}",
+            x
+        )));
+    }
+
+    // Do the fixed-point multiplication inline to save gas.
+    let double_scale_product = x * LOG2_E;
+    Ok(exp2((double_scale_product + HALF_SCALE) / SCALE)?)
+}
+
+/// @notice Calculates the binary exponent of x using the binary fraction method.
+///
+/// @dev See https://ethereum.stackexchange.com/q/79903/24693.
+///
+/// Requirements:
+/// - x must be 192 or less.
+/// - The result must fit within MAX_SD59x18.
+///
+/// Caveats:
+/// - For any x less than -59.794705707972522261, the result is zero.
+///
+/// @param x The exponent as a signed 59.18-decimal fixed-point number.
+/// @return result The result as a signed 59.18-decimal fixed-point number.
+pub fn exp2(x: I256) -> StdResult<I256> {
+    // This works because 2^(-x) = 1/2^x.
+    if (x < 0) {
+        // 2^59.794705707972522262 is the maximum number whose inverse does not truncate down to zero.
+        if (x < -59_794705707972522261) {
             return Ok(I256::ZERO);
         }
 
-        // Without this check, the value passed to "exp2" would be greater than 192.
-        if (x >= 133_084258667509499441) {
-            return Err(StdError::generic_err(format!("PRBMathSD59x18__ExpInputTooBig {}", x)));
+        // Do the fixed-point inversion inline to save gas. The numerator is SCALE * SCALE.
+        Ok(DOUBLE_SCALE / exp2(x * I256::MINUS_ONE)?)
+    } else {
+        // 2^192 doesn't fit within the 192.64-bit format used internally in this function.
+        if x >= 192 * SCALE {
+            return Err(StdError::generic_err(format!(
+                "PRBMathSD59x18__Exp2InputTooBig {}",
+                x
+            )));
         }
 
-        // Do the fixed-point multiplication inline to save gas.
-            let double_scale_product = x * LOG2_E;
-            Ok(exp2((double_scale_product + HALF_SCALE) / SCALE)?)
+        // Convert x to the 192.64-bit fixed-point format.
+        let x192x64 = (x.as_u256() << 64) / SCALE.as_u256();
+
+        // Safe to convert the result to int256 directly because the maximum input allowed is 192.
+        Ok(core::exp2(x192x64).as_i256())
     }
-
-        /// @notice Calculates the binary exponent of x using the binary fraction method.
-    ///
-    /// @dev See https://ethereum.stackexchange.com/q/79903/24693.
-    ///
-    /// Requirements:
-    /// - x must be 192 or less.
-    /// - The result must fit within MAX_SD59x18.
-    ///
-    /// Caveats:
-    /// - For any x less than -59.794705707972522261, the result is zero.
-    ///
-    /// @param x The exponent as a signed 59.18-decimal fixed-point number.
-    /// @return result The result as a signed 59.18-decimal fixed-point number.
-    pub fn exp2(x: I256) -> StdResult<I256> {
-        // This works because 2^(-x) = 1/2^x.
-        if (x < 0) {
-            // 2^59.794705707972522262 is the maximum number whose inverse does not truncate down to zero.
-            if (x < -59_794705707972522261) {
-                return Ok(I256::ZERO);
-            }
-
-            // Do the fixed-point inversion inline to save gas. The numerator is SCALE * SCALE.
-                Ok(DOUBLE_SCALE / exp2(x * I256::MINUS_ONE)?)
-        } else {
-            // 2^192 doesn't fit within the 192.64-bit format used internally in this function.
-            if x >= 192 * SCALE {
-                return Err(StdError::generic_err(format!("PRBMathSD59x18__Exp2InputTooBig {}", x)));
-            }
-
-                // Convert x to the 192.64-bit fixed-point format.
-                let x192x64 = (x.as_u256() << 64) / SCALE.as_u256();
-
-                // Safe to convert the result to int256 directly because the maximum input allowed is 192.
-                Ok(core::exp2(x192x64).as_i256())
-        }
-    }
+}
 
 /// Calculates the natural logarithm of x.
 ///

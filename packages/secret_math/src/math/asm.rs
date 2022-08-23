@@ -1,4 +1,4 @@
-use ethnum::{U256, I256};
+use ethnum::{I256, U256};
 
 /// Computes (x + y) % k where the addition is performed with arbitrary precision and does not wrap around at 2^256
 pub fn addmod(x: U256, y: U256, k: U256) -> U256 {
@@ -37,7 +37,11 @@ pub fn sub(x: U256, y: U256) -> I256 {
 }
 
 pub fn sgt(x: I256, y: I256) -> I256 {
-    if x > y { I256::ONE } else { I256::ZERO }
+    if x > y {
+        I256::ONE
+    } else {
+        I256::ZERO
+    }
 }
 
 pub fn or(x: U256, y: U256) -> U256 {

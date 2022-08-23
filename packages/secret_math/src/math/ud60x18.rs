@@ -5,7 +5,10 @@ use super::{
     asm::gt, core, tens::*, MAX_UD60x18, MAX_WHOLE_UD60x18, SCALE_u128, DOUBLE_SCALE, HALF_SCALE,
     LOG2_E, SCALE,
 };
-use crate::{asm::{self}, core::{most_significant_bit, muldiv_fp, muldiv}};
+use crate::{
+    asm::{self},
+    core::{most_significant_bit, muldiv, muldiv_fp},
+};
 use cosmwasm_std::{Decimal256, DivideByZeroError, StdError, StdResult, Uint256};
 use ethnum::{AsU256, U256};
 
@@ -271,165 +274,172 @@ pub fn log10(x: U256) -> StdResult<U256> {
     Ok(result)
 }
 
-    /// @notice Divides two unsigned 60.18-decimal fixed-point numbers, returning a new unsigned 60.18-decimal fixed-point number.
-    ///
-    /// @dev Uses mulDiv to enable overflow-safe multiplication and division.
-    ///
-    /// Requirements:
-    /// - The denominator cannot be zero.
-    ///
-    /// @param x The numerator as an unsigned 60.18-decimal fixed-point number.
-    /// @param y The denominator as an unsigned 60.18-decimal fixed-point number.
-    /// @param result The quotient as an unsigned 60.18-decimal fixed-point number.
-    pub fn div(x: U256, y: U256) -> StdResult<U256> {
-        muldiv(x, SCALE, y)
+/// @notice Divides two unsigned 60.18-decimal fixed-point numbers, returning a new unsigned 60.18-decimal fixed-point number.
+///
+/// @dev Uses mulDiv to enable overflow-safe multiplication and division.
+///
+/// Requirements:
+/// - The denominator cannot be zero.
+///
+/// @param x The numerator as an unsigned 60.18-decimal fixed-point number.
+/// @param y The denominator as an unsigned 60.18-decimal fixed-point number.
+/// @param result The quotient as an unsigned 60.18-decimal fixed-point number.
+pub fn div(x: U256, y: U256) -> StdResult<U256> {
+    muldiv(x, SCALE, y)
+}
+
+/// @notice Yields the excess beyond the floor of x.
+/// @dev Based on the odd pub fn definition https://en.wikipedia.org/wiki/Fractional_part.
+/// @param x The unsigned 60.18-decimal fixed-point number to get the fractional part of.
+/// @param result The fractional part of x as an unsigned 60.18-decimal fixed-point number.
+pub fn frac(x: U256) -> U256 {
+    x % SCALE
+}
+
+/// @notice Calculates geometric mean of x and y, i.e. sqrt(x * y), rounding down.
+///
+/// @dev Requirements:
+/// - x * y must fit within MAX_UD60x18, lest it overflows.
+///
+/// @param x The first operand as an unsigned 60.18-decimal fixed-point number.
+/// @param y The second operand as an unsigned 60.18-decimal fixed-point number.
+/// @return result The result as an unsigned 60.18-decimal fixed-point number.
+pub fn gm(x: U256, y: U256) -> StdResult<U256> {
+    if (x == 0) {
+        return Ok(U256::ZERO);
     }
 
-    /// @notice Yields the excess beyond the floor of x.
-    /// @dev Based on the odd pub fn definition https://en.wikipedia.org/wiki/Fractional_part.
-    /// @param x The unsigned 60.18-decimal fixed-point number to get the fractional part of.
-    /// @param result The fractional part of x as an unsigned 60.18-decimal fixed-point number.
-    pub fn frac(x: U256) -> U256 {
-        x % SCALE
+    // Checking for overflow this way is faster than letting Solidity do it.
+    let xy = x * y;
+    if (xy / x != y) {
+        return Err(StdError::generic_err(format!(
+            "PRBMathUD60x18__GmOverflow {} {}",
+            x, y
+        )));
     }
 
-    /// @notice Calculates geometric mean of x and y, i.e. sqrt(x * y), rounding down.
-    ///
-    /// @dev Requirements:
-    /// - x * y must fit within MAX_UD60x18, lest it overflows.
-    ///
-    /// @param x The first operand as an unsigned 60.18-decimal fixed-point number.
-    /// @param y The second operand as an unsigned 60.18-decimal fixed-point number.
-    /// @return result The result as an unsigned 60.18-decimal fixed-point number.
-    pub fn gm(x: U256, y: U256) -> StdResult<U256> {
-        if (x == 0) {
+    // We don't need to multiply by the SCALE here because the x*y product had already picked up a factor of SCALE
+    // during multiplication. See the comments within the "sqrt" pub fn.
+    Ok(sqrt(xy)?)
+}
+
+/// @notice Calculates the natural logarithm of x.
+///
+/// @dev Based on the insight that ln(x) = log2(x) / log2(e).
+///
+/// Requirements:
+/// - All from "log2".
+///
+/// Caveats:
+/// - All from "log2".
+/// - This doesn't return exactly 1 for 2.718281828459045235, for that we would need more fine-grained precision.
+///
+/// @param x The unsigned 60.18-decimal fixed-point number for which to calculate the natural logarithm.
+/// @return result The natural logarithm as an unsigned 60.18-decimal fixed-point number.
+pub fn ln(x: U256) -> StdResult<U256> {
+    // Do the fixed-point multiplication inline to save gas. This is overflow-safe because the maximum value that log2(x)
+    // can return is 196205294292027477728.
+    Ok((log2(x)? * SCALE) / LOG2_E)
+}
+
+/// @notice Multiplies two unsigned 60.18-decimal fixed-point numbers together, returning a new unsigned 60.18-decimal
+/// fixed-point number.
+/// @dev See the documentation for the "PRBMath.mulDivFixedPoint" pub fn.
+/// @param x The multiplicand as an unsigned 60.18-decimal fixed-point number.
+/// @param y The multiplier as an unsigned 60.18-decimal fixed-point number.
+/// @return result The product as an unsigned 60.18-decimal fixed-point number.
+pub fn mul(x: U256, y: U256) -> StdResult<U256> {
+    muldiv_fp(x, y)
+}
+
+/// @notice Returns PI as an unsigned 60.18-decimal fixed-point number.
+pub fn pi() -> U256 {
+    U256::new(3_141592653589793238u128)
+}
+
+/// @notice Raises x to the power of y.
+///
+/// @dev Based on the insight that x^y = 2^(log2(x) * y).
+///
+/// Requirements:
+/// - All from "exp2", "log2" and "mul".
+///
+/// Caveats:
+/// - All from "exp2", "log2" and "mul".
+/// - Assumes 0^0 is 1.
+///
+/// @param x Number to raise to given power y, as an unsigned 60.18-decimal fixed-point number.
+/// @param y Exponent to raise x to, as an unsigned 60.18-decimal fixed-point number.
+/// @return result x raised to power y, as an unsigned 60.18-decimal fixed-point number.
+pub fn pow(x: U256, y: U256) -> StdResult<U256> {
+    if (x == 0) {
+        if y == 0 {
+            return Ok(SCALE);
+        } else {
             return Ok(U256::ZERO);
         }
+    } else {
+        Ok(exp2(mul(log2(x)?, y)?)?)
+    }
+}
 
-            // Checking for overflow this way is faster than letting Solidity do it.
-            let xy = x * y;
-            if (xy / x != y) {
-                return Err(StdError::generic_err(format!("PRBMathUD60x18__GmOverflow {} {}", x, y)));
-            }
+/// @notice Raises x (unsigned 60.18-decimal fixed-point number) to the power of y (basic unsigned integer) using the
+/// famous algorithm "exponentiation by squaring".
+///
+/// @dev See https://en.wikipedia.org/wiki/Exponentiation_by_squaring
+///
+/// Requirements:
+/// - The result must fit within MAX_UD60x18.
+///
+/// Caveats:
+/// - All from "mul".
+/// - Assumes 0^0 is 1.
+///
+/// @param x The base as an unsigned 60.18-decimal fixed-point number.
+/// @param y The exponent as an uint256.
+/// @return result The result as an unsigned 60.18-decimal fixed-point number.
+pub fn powu(x: U256, y: U256) -> StdResult<U256> {
+    // Calculate the first iteration of the loop in advance.
+    let mut result = if y & 1 > 0 { x } else { SCALE };
+    let mut x = x;
+    // Equivalent to "for(y /= 2; y > 0; y /= 2)" but faster.
+    let mut new_y = y >> 1;
+    while new_y > 0u128 {
+        x = muldiv_fp(x, x)?;
 
-            // We don't need to multiply by the SCALE here because the x*y product had already picked up a factor of SCALE
-            // during multiplication. See the comments within the "sqrt" pub fn.
-            Ok(sqrt(xy)?)
+        // Equivalent to "y % 2 == 1" but faster.
+        if y & 1 > 0 {
+            result = muldiv_fp(result, x)?;
         }
-
-    /// @notice Calculates the natural logarithm of x.
-    ///
-    /// @dev Based on the insight that ln(x) = log2(x) / log2(e).
-    ///
-    /// Requirements:
-    /// - All from "log2".
-    ///
-    /// Caveats:
-    /// - All from "log2".
-    /// - This doesn't return exactly 1 for 2.718281828459045235, for that we would need more fine-grained precision.
-    ///
-    /// @param x The unsigned 60.18-decimal fixed-point number for which to calculate the natural logarithm.
-    /// @return result The natural logarithm as an unsigned 60.18-decimal fixed-point number.
-    pub fn ln(x: U256) -> StdResult<U256> {
-        // Do the fixed-point multiplication inline to save gas. This is overflow-safe because the maximum value that log2(x)
-        // can return is 196205294292027477728.
-        Ok((log2(x)? * SCALE) / LOG2_E)
+        new_y >>= 1;
     }
+    Ok(result)
+}
 
-    /// @notice Multiplies two unsigned 60.18-decimal fixed-point numbers together, returning a new unsigned 60.18-decimal
-    /// fixed-point number.
-    /// @dev See the documentation for the "PRBMath.mulDivFixedPoint" pub fn.
-    /// @param x The multiplicand as an unsigned 60.18-decimal fixed-point number.
-    /// @param y The multiplier as an unsigned 60.18-decimal fixed-point number.
-    /// @return result The product as an unsigned 60.18-decimal fixed-point number.
-    pub fn mul(x: U256, y: U256) -> StdResult<U256> {
-        muldiv_fp(x, y)
+/// @notice Returns 1 as an unsigned 60.18-decimal fixed-point number.
+pub fn scale() -> U256 {
+    SCALE
+}
+
+/// @notice Calculates the square root of x, rounding down.
+/// @dev Uses the Babylonian method https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method.
+///
+/// Requirements:
+/// - x must be less than MAX_UD60x18 / SCALE.
+///
+/// @param x The unsigned 60.18-decimal fixed-point number for which to calculate the square root.
+/// @return result The result as an unsigned 60.18-decimal fixed-point .
+pub fn sqrt(x: U256) -> StdResult<U256> {
+    if (x > MAX_UD60x18 / SCALE) {
+        return Err(StdError::generic_err(format!(
+            "PRBMathUD60x18__SqrtOverflow {}",
+            x
+        )));
     }
-
-    /// @notice Returns PI as an unsigned 60.18-decimal fixed-point number.
-    pub fn pi() -> U256 {
-        U256::new(3_141592653589793238u128)
-    }
-
-    /// @notice Raises x to the power of y.
-    ///
-    /// @dev Based on the insight that x^y = 2^(log2(x) * y).
-    ///
-    /// Requirements:
-    /// - All from "exp2", "log2" and "mul".
-    ///
-    /// Caveats:
-    /// - All from "exp2", "log2" and "mul".
-    /// - Assumes 0^0 is 1.
-    ///
-    /// @param x Number to raise to given power y, as an unsigned 60.18-decimal fixed-point number.
-    /// @param y Exponent to raise x to, as an unsigned 60.18-decimal fixed-point number.
-    /// @return result x raised to power y, as an unsigned 60.18-decimal fixed-point number.
-    pub fn pow(x: U256, y: U256) -> StdResult<U256> {
-        if (x == 0) {
-            if y == 0 {
-                return Ok(SCALE);
-            } else { return Ok(U256::ZERO); }
-        } else {
-            Ok(exp2(mul(log2(x)?, y)?)?)
-        }
-    }
-
-    /// @notice Raises x (unsigned 60.18-decimal fixed-point number) to the power of y (basic unsigned integer) using the
-    /// famous algorithm "exponentiation by squaring".
-    ///
-    /// @dev See https://en.wikipedia.org/wiki/Exponentiation_by_squaring
-    ///
-    /// Requirements:
-    /// - The result must fit within MAX_UD60x18.
-    ///
-    /// Caveats:
-    /// - All from "mul".
-    /// - Assumes 0^0 is 1.
-    ///
-    /// @param x The base as an unsigned 60.18-decimal fixed-point number.
-    /// @param y The exponent as an uint256.
-    /// @return result The result as an unsigned 60.18-decimal fixed-point number.
-    pub fn powu(x: U256, y: U256) -> StdResult<U256> {
-        // Calculate the first iteration of the loop in advance.
-        let mut result = if y & 1 > 0 { x } else { SCALE };
-        let mut x = x;
-        // Equivalent to "for(y /= 2; y > 0; y /= 2)" but faster.
-        let mut new_y = y >> 1;
-        while new_y > 0u128 {
-            x = muldiv_fp(x, x)?;
-
-            // Equivalent to "y % 2 == 1" but faster.
-            if y & 1 > 0 {
-                result = muldiv_fp(result, x)?;
-            }
-            new_y >>= 1;
-        }
-        Ok(result)
-    }
-
-    /// @notice Returns 1 as an unsigned 60.18-decimal fixed-point number.
-    pub fn scale() -> U256 {
-        SCALE
-    }
-
-    /// @notice Calculates the square root of x, rounding down.
-    /// @dev Uses the Babylonian method https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method.
-    ///
-    /// Requirements:
-    /// - x must be less than MAX_UD60x18 / SCALE.
-    ///
-    /// @param x The unsigned 60.18-decimal fixed-point number for which to calculate the square root.
-    /// @return result The result as an unsigned 60.18-decimal fixed-point .
-    pub fn sqrt(x: U256) -> StdResult<U256> {
-            if (x > MAX_UD60x18 / SCALE) {
-                return Err(StdError::generic_err(format!("PRBMathUD60x18__SqrtOverflow {}", x)));
-            }
-            // Multiply x by the SCALE to account for the factor of SCALE that is picked up when multiplying two unsigned
-            // 60.18-decimal fixed-point numbers together (in this case, those two numbers are both the square root).
-            Ok(core::sqrt(x * SCALE))
-        }
-
+    // Multiply x by the SCALE to account for the factor of SCALE that is picked up when multiplying two unsigned
+    // 60.18-decimal fixed-point numbers together (in this case, those two numbers are both the square root).
+    Ok(core::sqrt(x * SCALE))
+}
 
 #[cfg(test)]
 mod test {

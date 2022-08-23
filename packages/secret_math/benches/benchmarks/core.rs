@@ -1,4 +1,8 @@
-use better_secret_math::{core::{muldiv, muldiv_fp}, SCALE_u128, SCALE, ud60x18::mul};
+use better_secret_math::{
+    core::{muldiv, muldiv_fp},
+    ud60x18::mul,
+    SCALE_u128, SCALE,
+};
 use cosmwasm_std::{Decimal256, OverflowError, StdResult, Uint256};
 use criterion::{black_box, criterion_group, Criterion};
 use ethnum::{I256, U256};
@@ -79,9 +83,9 @@ pub fn criterion_benchmark(c: &mut Criterion) {
 
     group.bench_function("U256::decimals", |b| {
         b.iter(|| {
-            U256::from_be_bytes(
-                black_box(Decimal256::new(sml_uint[1]).atomics().to_be_bytes())
-            )
+            U256::from_be_bytes(black_box(
+                Decimal256::new(sml_uint[1]).atomics().to_be_bytes(),
+            ))
         })
     });
 
@@ -95,12 +99,17 @@ pub fn criterion_benchmark(c: &mut Criterion) {
 
     group.bench_function("Uint256::multiply_ratio", |b| {
         b.iter(|| {
-            black_box(sml_uint[2]).multiply_ratio(black_box(sml_uint[3]), black_box(Uint256::from_u128(SCALE_u128)))
+            black_box(sml_uint[2]).multiply_ratio(
+                black_box(sml_uint[3]),
+                black_box(Uint256::from_u128(SCALE_u128)),
+            )
         })
     });
 
     group.bench_function("Decimal256::checked_mul", |b| {
-        b.iter(|| { Decimal256::new(black_box(sml_uint[2])).checked_mul(Decimal256::new(black_box(sml_uint[3])))
+        b.iter(|| {
+            Decimal256::new(black_box(sml_uint[2]))
+                .checked_mul(Decimal256::new(black_box(sml_uint[3])))
         })
     });
 

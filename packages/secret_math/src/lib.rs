@@ -1,4 +1,4 @@
-pub mod math;
 pub mod macros;
-pub use math::*;
+pub mod math;
 pub use ethnum::*;
+pub use math::*;

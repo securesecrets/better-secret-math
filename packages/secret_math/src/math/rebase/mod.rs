@@ -1,11 +1,14 @@
 use std::ops::{Add, Div};
 
+use crate::{
+    core::{checked_add, checked_sub, muldiv},
+    make_btr,
+};
 use cosmwasm_std::StdResult;
-use ethnum::U256;
-use crate::{core::{muldiv, checked_sub, checked_add}, make_btr};
 use cosmwasm_std::Uint256;
+use ethnum::U256;
 
-make_btr!{
+make_btr! {
     Rebase {
         elastic: Uint256, U256, "";
         base: Uint256, U256, ""
