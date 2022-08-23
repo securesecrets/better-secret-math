@@ -23,6 +23,10 @@ serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = "1.0"
 ethnum = { git = "https://github.com/securesecrets/ethnum-rs" }
 
+paste = "1.0"
+derive-from-ext = "0.2"
+btr-macros = { path = "../btr_macros" }
+
 [dev-dependencies]
 rstest = "0.15.0"
 criterion = "0.3"
