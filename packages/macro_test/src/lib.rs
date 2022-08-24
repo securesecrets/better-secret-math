@@ -17,7 +17,7 @@ mod tests {
     #[test]
     fn support_interface_generation() {
         // Test that is builds
-        let assert = DeriveTestIMPL {
+        let assert = DeriveTestInterface {
             other: 10u64,
             string: "test".into(),
         };
@@ -26,8 +26,8 @@ mod tests {
     #[test]
     fn has_interface_generation() {
         //Test that is builds
-        let assert = AttributeTestIMPL {
-            test: DeriveTestIMPL {
+        let assert = AttributeTestInterface {
+            test: DeriveTestInterface {
                 other: 10u64,
                 string: "test".into(),
             },
