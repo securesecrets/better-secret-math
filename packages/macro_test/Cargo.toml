@@ -1,0 +1,15 @@
+[package]
+name = "macro-test"
+version = "0.1.0"
+authors = [""]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+
+[dependencies]
+btr-macros = { path = "../btr_macros" }
+
