@@ -17,14 +17,6 @@ pub fn support_interface(input: TokenStream) -> TokenStream {
     implement_interface::impl_support_interface(ast)
 }
 
-#[proc_macro_derive(Btr)]
-pub fn btr_struct(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let expanded = btr::btr_struct(input).into_token_stream();
-
-    proc_macro::TokenStream::from(expanded)
-}
-
 #[proc_macro_attribute]
 pub fn btr_derive(
     attr: proc_macro::TokenStream,

@@ -43,42 +43,6 @@ pub fn convert_to_btr(ty: &Type) -> Type {
     }
 }
 
-pub fn btr_struct(input: DeriveInput) -> DeriveInput {
-    let fields = match &input.data {
-        Data::Struct(DataStruct { fields: Fields::Named(fields), .. }) => &fields.named,
-        _ => panic!("expected a struct with named fields"),
-    };
-    let element = fields.iter().map(|field| &field.ident);
-    let ty = fields.iter().map(|field| &field.ty);
-    let btr_ty = fields.iter().map(|field| convert_to_btr(&field.ty) );
-    let attrs = fields.iter().map(|field| &field.attrs);
-    let struct_name = &input.ident;
-
-    parse_quote! {
-        paste::paste! {
-            #[btr_macros::btr_derive([<Btr #struct_name>])]
-            #input
-            // #crate::impl_new! {
-            //     #struct {
-            //         #(#element, #ty); *
-            //     }
-            // }
-            #[doc = "[" #struct_name "] optimized for math and storage (via support for Bincode2 serialization)."]
-            #[btr_macros::btr_derive(#struct_name)]
-            pub struct [<Btr #struct_name>] {
-                #(
-                    pub #element: #btr_ty
-                ),*
-            }
-            // #crate::impl_new! {
-            //     [<Btr #struct>] {
-            //         #(#element, #btr_ty); *
-            //     }
-            // }
-        }
-    }
-}
-
 pub fn derive(input: DeriveInput, ident: Ident) -> DeriveInput {
     let name = input.ident.to_string();
 
