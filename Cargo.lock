@@ -693,7 +693,9 @@ dependencies = [
 name = "macro-test"
 version = "0.1.0"
 dependencies = [
+ "better-secret-math",
  "btr-macros",
+ "cosmwasm-std",
 ]
 
 [[package]]

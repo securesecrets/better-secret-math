@@ -17,26 +17,28 @@ fn ident_impl(ident: &Ident) -> Ident {
 
 /// Consumes a type and returns the new type
 /// Returns the converted type plus an option detailing which type was replaced if any
+/// // TODO: option string could be replaced with a mut vec of unique tokens
 fn legacy_conversion(ty: &Type) -> (Type, Option<String>) {
     let mut ty = ty.clone();
     let type_option: Option<String>;
     match ty.clone() {
         Type::Path(mut tp) => {
-            let mut path = tp.path.segments.first_mut().unwrap();
+            let path = tp.path.segments.first_mut().unwrap();
 
             let ident_name = &path.ident.to_string();
             if ident_name == "U256" {
                 path.ident = Ident::new("Uint256", Span::call_site());
                 type_option = Some(String::from("Uint256"));
-            } else if ident_name == "Uint64" {
-                path.ident = Ident::new("u64", Span::call_site());
-                type_option = Some(String::from("u64"));
-            } else if ident_name == "Uint128" {
-                path.ident = Ident::new("u128", Span::call_site());
-                type_option = Some(String::from("u128"));
+            } else if ident_name == "u64" {
+                path.ident = Ident::new("Uint64", Span::call_site());
+                type_option = Some(String::from("Uint64"));
+            } else if ident_name == "u128" {
+                path.ident = Ident::new("Uint128", Span::call_site());
+                type_option = Some(String::from("Uint128"));
             } else {
                 type_option = None;
             }
+            ty = Type::Path(tp);
         }
         _ => {
             type_option = None;
@@ -46,9 +48,45 @@ fn legacy_conversion(ty: &Type) -> (Type, Option<String>) {
     return (ty, type_option);
 }
 
+fn from_field_conversion(
+    posfix: proc_macro2::TokenStream,
+    ty: &Type,
+    has_flag: bool,
+) -> proc_macro2::TokenStream {
+    match ty.clone() {
+        Type::Path(mut tp) => {
+            let path = tp.path.segments.first_mut().unwrap();
+
+            let type_name = &path.ident.to_string();
+            if type_name == "Uint256" || has_flag {
+                quote!(
+                    x.#posfix.into()
+                )
+            } else if type_name == "Uint64" {
+                quote!(
+                    Uint64::new(x.#posfix)
+                )
+            } else if type_name == "Uint128" {
+                quote!(
+                    Uint128::new(x.#posfix)
+                )
+            } else {
+                quote!(
+                    x.#posfix
+                )
+            }
+        }
+        _ => {
+            panic!("Field conversion only valid for path");
+        }
+    }
+}
+
 /// Processes the given type and populates the required import (if not already added) and
 /// the updated type
-fn process_type(item: &Field, types: &mut Vec<Type>, imports: &mut Vec<String>) {
+///
+/// Returns the new type and if its has an interface attribute
+fn process_type(item: &Field, types: &mut Vec<Type>, imports: &mut Vec<String>) -> (Type, bool) {
     // Check if were defining an interface
     if item
         .attrs
@@ -62,8 +100,9 @@ fn process_type(item: &Field, types: &mut Vec<Type>, imports: &mut Vec<String>) 
                 let mut new_tp = tp.clone();
                 let mut path = new_tp.path.segments.first_mut().unwrap();
                 path.ident = ident_impl(&path.ident);
-
-                types.push(Type::Path(new_tp));
+                let new_type = Type::Path(new_tp);
+                types.push(new_type.clone());
+                return (new_type, true);
             }
             _ => panic!("Attribute must be a struct"),
         }
@@ -75,7 +114,9 @@ fn process_type(item: &Field, types: &mut Vec<Type>, imports: &mut Vec<String>) 
                 imports.push(import);
             }
         }
+        let new_type = converted.clone();
         types.push(converted);
+        return (new_type, false);
     }
 }
 
@@ -115,10 +156,18 @@ pub(crate) fn impl_support_interface(ast: DeriveInput) -> TokenStream {
                 let mut names = vec![];
                 // struct parameter types
                 let mut types = vec![];
+                // From conversion
+                let mut from_conversion = vec![];
 
                 for item in named.iter() {
-                    process_type(item, &mut types, &mut imports);
-                    names.push(item.ident.clone().unwrap());
+                    let (new_type, has_flag) = process_type(item, &mut types, &mut imports);
+                    let item_name = item.ident.clone().unwrap();
+                    from_conversion.push(from_field_conversion(
+                        quote!(#item_name),
+                        &new_type,
+                        has_flag,
+                    ));
+                    names.push(item_name);
                 }
 
                 quote!(
@@ -127,18 +176,31 @@ pub(crate) fn impl_support_interface(ast: DeriveInput) -> TokenStream {
                             pub #names: #types
                         ),*
                     }
+
+                    impl From<#name> for #impl_name {
+                        fn from(x: #name) -> Self {
+                            Self {
+                                #(#names: #from_conversion),*
+                            }
+                        }
+                    }
                 )
             }
             Fields::Unnamed(FieldsUnnamed { unnamed, .. }) => {
-                //TODO: implement support for unnamed newtypes
-                // struct parameter types
                 let mut types = vec![];
+                //let mut from_conversion = vec![];
 
                 for item in unnamed.iter() {
                     process_type(item, &mut types, &mut imports);
                 }
 
-                panic!("Newtypes not implemented")
+                quote!(
+                    pub struct #impl_name (
+                        #(
+                            #types
+                        ),*
+                    );
+                )
             }
             Fields::Unit => panic!("Units not implemented"),
         },
@@ -146,21 +208,52 @@ pub(crate) fn impl_support_interface(ast: DeriveInput) -> TokenStream {
         Data::Union(_) => panic!("Union not implemented"),
     };
 
+    // Doing this the ugly way cause I cant find a solution
     let mut import_token = quote!();
     if !no_import {
         if !imports.is_empty() {
-            if no_shd {
-                import_token = quote!(
-                    use shade_protocol::c_std::{
-                        #(#imports),*
+            if !no_shd {
+                for import in imports {
+                    if import == "Uint256".to_string() {
+                        import_token = quote!(
+                            #import_token
+                            use shade_protocol::c_std::Uint256;
+                        )
+                    } else if import == "Uint128".to_string() {
+                        import_token = quote!(
+                            #import_token
+                            use shade_protocol::c_std::Uint128;
+                        )
+                    } else if import == "Uint64".to_string() {
+                        import_token = quote!(
+                            #import_token
+                            use shade_protocol::c_std::Uint64;
+                        )
+                    } else {
+                        panic!("Import not defined {}", import.to_string())
                     }
-                )
+                }
             } else {
-                import_token = quote!(
-                    use cosmwasm_std::{
-                        #(#imports),*
+                for import in imports {
+                    if import == "Uint256".to_string() {
+                        import_token = quote!(
+                            #import_token
+                            use cosmwasm_std::Uint256;
+                        )
+                    } else if import == "Uint128".to_string() {
+                        import_token = quote!(
+                            #import_token
+                            use cosmwasm_std::Uint128;
+                        )
+                    } else if import == "Uint64".to_string() {
+                        import_token = quote!(
+                            #import_token
+                            use cosmwasm_std::Uint64;
+                        )
+                    } else {
+                        panic!("Import not defined {}", import.to_string())
                     }
-                )
+                }
             }
         }
     }
