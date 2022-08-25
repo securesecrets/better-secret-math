@@ -125,7 +125,6 @@ pub(crate) fn impl_support_interface(ast: DeriveInput) -> TokenStream {
     let impl_name = ident_impl(&name);
 
     // TODO: add support for none, pub, pub(crate) for parameters and the struct
-    // TODO: implement From<name> for impl_name
 
     let mut imports = vec![];
 
@@ -188,10 +187,16 @@ pub(crate) fn impl_support_interface(ast: DeriveInput) -> TokenStream {
             }
             Fields::Unnamed(FieldsUnnamed { unnamed, .. }) => {
                 let mut types = vec![];
-                //let mut from_conversion = vec![];
+                let mut from_conversion = vec![];
 
-                for item in unnamed.iter() {
-                    process_type(item, &mut types, &mut imports);
+                for (i, item) in unnamed.iter().enumerate() {
+                    let (new_type, has_flag) = process_type(item, &mut types, &mut imports);
+                    let index = syn::Index::from(i);
+                    from_conversion.push(from_field_conversion(
+                        quote!(#index),
+                        &new_type,
+                        has_flag,
+                    ));
                 }
 
                 quote!(
@@ -200,6 +205,14 @@ pub(crate) fn impl_support_interface(ast: DeriveInput) -> TokenStream {
                             #types
                         ),*
                     );
+
+                    impl From<#name> for #impl_name {
+                        fn from(x: #name) -> Self {
+                            Self (
+                                #(#from_conversion),*
+                            )
+                        }
+                    }
                 )
             }
             Fields::Unit => panic!("Units not implemented"),

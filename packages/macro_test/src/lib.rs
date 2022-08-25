@@ -2,9 +2,9 @@
 mod tests {
     use better_secret_math::U256;
     use btr_macros::support_interface;
+    use cosmwasm_std::Uint128;
 
     #[derive(support_interface)]
-    #[no_shd]
     pub struct Derive {
         pub string: String,
         pub other: u8,
@@ -103,5 +103,22 @@ mod tests {
                 string: "test".into(),
             },
         );
+
+        #[derive(support_interface)]
+        #[no_shd]
+        pub struct TestInto(u128, #[has_interface] Derive);
+
+        let assert = TestIntoInterface(
+            Uint128::new(100),
+            DeriveInterface {
+                string: "".into(),
+                other: 0,
+            },
+        );
+
+        let into: TestIntoInterface = TestInto(100, Derive::default()).into();
+
+        assert_eq!(assert.1.string, into.1.string);
+        assert_eq!(assert.0, into.0);
     }
 }
