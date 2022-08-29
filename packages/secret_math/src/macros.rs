@@ -1,5 +1,8 @@
 /// Usage:
 /// ```
+/// use cosmwasm_std::Uint256;
+/// use ethnum::U256;
+/// use better_secret_math::make_btr;
 /// make_btr!{
 ///     Rebase {
 ///        elastic: Uint256, U256, "";

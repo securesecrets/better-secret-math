@@ -1,6 +1,5 @@
-use proc_macro2::{Ident, Span};
-use quote::ToTokens;
-use syn::{parse_quote, Data, DataStruct, DeriveInput, Fields, Path, Type, TypePath};
+use proc_macro2::Ident;
+use syn::{parse_quote, DeriveInput};
 
 pub fn derive(input: DeriveInput, ident: Ident) -> DeriveInput {
     let name = input.ident.to_string();
