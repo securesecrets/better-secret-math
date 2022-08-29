@@ -10,10 +10,6 @@ mod tests {
         pub other: u8,
     }
 
-    // impl From<Derive> for DeriveImplementation {
-    //     fn from(x: Derive) -> Self {}
-    // }
-
     impl Default for Derive {
         fn default() -> Self {
             Self {
@@ -38,6 +34,7 @@ mod tests {
 
     #[test]
     fn struct_generation() {
+        use cosmwasm_std::Decimal256;
         // Test that is builds
         let assert = DeriveInterface {
             other: 10,

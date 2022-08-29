@@ -1,47 +1,6 @@
 use proc_macro2::{Ident, Span};
 use quote::ToTokens;
-use syn::{parse_quote, DeriveInput, Data, DataStruct, Fields, Type, TypePath, Path};
-
-pub fn convert_to_btr(ty: &Type) -> Type {
-    match ty {
-        Type::Path(type_path) => {
-            let u256_ty = Type::Path(TypePath {
-                qself: None,
-                path: Path::from(Ident::new("U256", Span::call_site())),
-            });
-            let addr_ty = Type::Path(TypePath {
-                qself: None,
-                path: Path::from(Ident::new("Addr", Span::call_site())),
-            });
-            let u64_ty = Type::Path(TypePath {
-                qself: None,
-                path: Path::from(Ident::new("u64", Span::call_site())),
-            });
-            let u128_ty = Type::Path(TypePath {
-                qself: None,
-                path: Path::from(Ident::new("u128", Span::call_site())),
-            });
-            let path = &type_path.path;
-            if path.is_ident("Addr") {
-                addr_ty
-            } else if path.is_ident("Uint128") {
-                u128_ty
-            } else if path.is_ident("Uint64") {
-                u64_ty
-            } else if path.is_ident("Decimal256") || path.is_ident("Uint256") {
-                u256_ty
-            } else {
-                let mut btr = "Btr".to_string();
-                btr.push_str(&path.into_token_stream().to_string());
-                Type::Path(TypePath {
-                    qself: None,
-                    path: Path::from(Ident::new(btr.as_str(), Span::call_site())),
-                })
-            }
-        },
-        _ => panic!("Unsupported type."),
-    }
-}
+use syn::{parse_quote, Data, DataStruct, DeriveInput, Fields, Path, Type, TypePath};
 
 pub fn derive(input: DeriveInput, ident: Ident) -> DeriveInput {
     let name = input.ident.to_string();
