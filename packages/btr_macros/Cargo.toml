@@ -2,7 +2,8 @@
 name = "btr-macros"
 version = "0.1.0"
 authors = [
-   "hoomp <flammable.shower939@anonaddy.me>"
+   "hoomp <flammable.shower939@anonaddy.me>",
+   "Guy Garcia <guy.garcia@protonmail.com>",
 ]
 edition = "2021"
 
