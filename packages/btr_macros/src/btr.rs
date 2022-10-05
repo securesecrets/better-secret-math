@@ -20,6 +20,8 @@ pub fn derive(input: DeriveInput, ident: Ident) -> DeriveInput {
                 #[derive(
                     serde::Serialize,
                     serde::Deserialize,
+                    borsh::BorshSerialize,
+                    borsh::BorshDeserialize,
                     Clone,
                     Debug,
                     PartialEq,
