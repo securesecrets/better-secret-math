@@ -1,8 +1,20 @@
+use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::ToTokens;
 use syn::{parse_macro_input, DeriveInput};
 
 mod btr;
+mod implement_interface;
+
+/// has_interface replaces the given type with a support_interface compliant version
+/// no_shd replaces the library imports so it works with standard cosmwasm imports
+/// no_import skips the import generation (useful if using other custom equivalents)
+#[proc_macro_derive(support_interface, attributes(has_interface, no_shd, no_import))]
+pub fn support_interface(input: TokenStream) -> TokenStream {
+    let ast = syn::parse(input).unwrap();
+
+    implement_interface::impl_support_interface(ast)
+}
 
 #[proc_macro_attribute]
 pub fn btr_derive(

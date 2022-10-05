@@ -73,7 +73,7 @@ pub fn abs_diff(x: U256, y: U256) -> U256 {
 /// @param x The uint256 number for which to calculate the square root.
 /// @return result The result as an uint256.
 pub fn sqrt(x: U256) -> U256 {
-    if (x == 0) {
+    if x == 0 {
         return U256::ZERO;
     }
 
@@ -330,7 +330,7 @@ pub(crate) fn exp2(x: U256) -> U256 {
     }
 
     result *= SCALE;
-    result >>= (U256::new(191u128) - (x >> 64));
+    result >>= U256::new(191u128) - (x >> 64);
     result
 }
 
@@ -405,13 +405,13 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     prod1 = u_sub(u_sub(mm, prod0), lt(mm, prod0));
 
     // Handle non-overflow cases, 256 by 256 division.
-    if (prod1 == 0) {
+    if prod1 == 0 {
         result = prod0 / denominator;
         return Ok(result);
     }
 
     // Make sure the result is less than 2^256. Also prevents denominator == 0.
-    if (prod1 >= denominator) {
+    if prod1 >= denominator {
         return Err(StdError::Overflow {
             source: OverflowError {
                 operation: OverflowOperation::Mul,
@@ -571,7 +571,6 @@ pub fn muldiv_fp(x: U256, y: U256) -> StdResult<U256> {
 
 #[cfg(test)]
 mod test {
-    use cosmwasm_std::Decimal256;
     use rstest::*;
 
     use super::*;

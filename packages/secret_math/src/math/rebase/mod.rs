@@ -1,5 +1,3 @@
-use std::ops::{Add, Div};
-
 use crate::{
     core::{checked_add, checked_sub, muldiv},
     make_btr,
@@ -202,6 +200,8 @@ fn test_rebase_math() {
 
 #[test]
 fn test_vault_rebase_math() {
+    use std::ops::Div;
+
     let mut total_borrowed = Rebase::init();
     total_borrowed
         .add_base(Uint256::from(320u128), false)

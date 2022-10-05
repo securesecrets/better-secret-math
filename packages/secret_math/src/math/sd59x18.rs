@@ -1,7 +1,7 @@
 use cosmwasm_std::{StdError, StdResult};
 use ethnum::{I256, U256};
 
-use crate::asm::{gt, sgt, sub};
+use crate::asm::{sgt, sub};
 use crate::core::muldiv_fp;
 
 use super::core;
@@ -30,7 +30,7 @@ const MIN_WHOLE_SD59x18: I256 = I256::from_words(
 );
 
 pub fn pow(x: I256, y: I256) -> StdResult<I256> {
-    if (x == 0) {
+    if x == 0 {
         if y == 0 {
             return Ok(SCALE);
         } else {
@@ -59,7 +59,7 @@ pub fn pow(x: I256, y: I256) -> StdResult<I256> {
 /// @param y The multiplier as a signed 59.18-decimal fixed-point number.
 /// @return result The product as a signed 59.18-decimal fixed-point number.
 pub fn mul(x: I256, y: I256) -> StdResult<I256> {
-    if (x == MIN_SD59x18 || y == MIN_SD59x18) {
+    if x == MIN_SD59x18 || y == MIN_SD59x18 {
         return Err(StdError::generic_err(format!(
             "PRBMathSD59x18_MulInputTooSmall {}",
             x
@@ -72,7 +72,7 @@ pub fn mul(x: I256, y: I256) -> StdResult<I256> {
     ay = if y < 0 { (-y).as_u256() } else { y.as_u256() };
 
     let r_abs = muldiv_fp(ax, ay)?;
-    if (r_abs > MAX_SD59x18.as_u256()) {
+    if r_abs > MAX_SD59x18.as_u256() {
         return Err(StdError::generic_err(format!(
             "PRBMathSD59x18__MulOverflow {}",
             r_abs
@@ -106,12 +106,12 @@ pub fn mul(x: I256, y: I256) -> StdResult<I256> {
 /// @return result The result as a signed 59.18-decimal fixed-point number.
 pub fn exp(x: I256) -> StdResult<I256> {
     // Without this check, the value passed to "exp2" would be less than -59.794705707972522261.
-    if (x < -41_446531673892822322) {
+    if x < -41_446531673892822322 {
         return Ok(I256::ZERO);
     }
 
     // Without this check, the value passed to "exp2" would be greater than 192.
-    if (x >= 133_084258667509499441) {
+    if x >= 133_084258667509499441 {
         return Err(StdError::generic_err(format!(
             "PRBMathSD59x18__ExpInputTooBig {}",
             x
@@ -138,9 +138,9 @@ pub fn exp(x: I256) -> StdResult<I256> {
 /// @return result The result as a signed 59.18-decimal fixed-point number.
 pub fn exp2(x: I256) -> StdResult<I256> {
     // This works because 2^(-x) = 1/2^x.
-    if (x < 0) {
+    if x < 0 {
         // 2^59.794705707972522262 is the maximum number whose inverse does not truncate down to zero.
-        if (x < -59_794705707972522261) {
+        if x < -59_794705707972522261 {
             return Ok(I256::ZERO);
         }
 
@@ -256,13 +256,13 @@ pub fn log2(mut x: I256) -> StdResult<I256> {
 /// @param x The signed 59.18-decimal fixed-point number for which to calculate the square root.
 /// @return result The result as a signed 59.18-decimal fixed-point .
 pub fn sqrt(x: I256) -> StdResult<I256> {
-    if (x < 0) {
+    if x < 0 {
         return Err(StdError::generic_err(format!(
             "PRBMathSD59x18__SqrtNegativeInput {}",
             x
         )));
     }
-    if (x > MAX_SD59x18 / SCALE) {
+    if x > MAX_SD59x18 / SCALE {
         return Err(StdError::generic_err(format!(
             "PRBMathSD59x18__SqrtOverflow {}",
             x

@@ -1,6 +1,8 @@
 [workspace]
 members = [
   "packages/secret_math",
+  "packages/macro_test",
+  "packages/btr_macros"
 ]
 
 [profile.release]

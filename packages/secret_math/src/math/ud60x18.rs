@@ -110,7 +110,7 @@ pub fn from_uint(x: Uint256) -> StdResult<U256> {
 
 /// Asserts that 2 unsigned 60.18-decimal fixed-point values are within some decimal precision error.
 pub fn assert_with_precision(actual: U256, expected: U256, error: U256) {
-    use crate::core::{abs_diff, muldiv};
+    use crate::core::abs_diff;
 
     if error > U256::ONE * SCALE {
         panic!("Error precision cannot be 1.")
@@ -128,7 +128,7 @@ pub fn assert_with_precision(actual: U256, expected: U256, error: U256) {
 }
 
 pub fn log2(x: U256) -> StdResult<U256> {
-    if (x < SCALE) {
+    if x < SCALE {
         return Err(StdError::generic_err("PRBMathUD60x18 LogInputTooSmall"));
     }
     // Calculate the integer part of the logarithm and add it to the result and finally calculate y = x * 2^(-n).
@@ -142,7 +142,7 @@ pub fn log2(x: U256) -> StdResult<U256> {
     let mut y = x >> n;
 
     // If y = 1, the fractional part is zero.
-    if (y == SCALE) {
+    if y == SCALE {
         return Ok(result);
     }
 
@@ -305,13 +305,13 @@ pub fn frac(x: U256) -> U256 {
 /// @param y The second operand as an unsigned 60.18-decimal fixed-point number.
 /// @return result The result as an unsigned 60.18-decimal fixed-point number.
 pub fn gm(x: U256, y: U256) -> StdResult<U256> {
-    if (x == 0) {
+    if x == 0 {
         return Ok(U256::ZERO);
     }
 
     // Checking for overflow this way is faster than letting Solidity do it.
     let xy = x * y;
-    if (xy / x != y) {
+    if xy / x != y {
         return Err(StdError::generic_err(format!(
             "PRBMathUD60x18__GmOverflow {} {}",
             x, y
@@ -372,7 +372,7 @@ pub fn pi() -> U256 {
 /// @param y Exponent to raise x to, as an unsigned 60.18-decimal fixed-point number.
 /// @return result x raised to power y, as an unsigned 60.18-decimal fixed-point number.
 pub fn pow(x: U256, y: U256) -> StdResult<U256> {
-    if (x == 0) {
+    if x == 0 {
         if y == 0 {
             return Ok(SCALE);
         } else {
@@ -430,7 +430,7 @@ pub fn scale() -> U256 {
 /// @param x The unsigned 60.18-decimal fixed-point number for which to calculate the square root.
 /// @return result The result as an unsigned 60.18-decimal fixed-point .
 pub fn sqrt(x: U256) -> StdResult<U256> {
-    if (x > MAX_UD60x18 / SCALE) {
+    if x > MAX_UD60x18 / SCALE {
         return Err(StdError::generic_err(format!(
             "PRBMathUD60x18__SqrtOverflow {}",
             x

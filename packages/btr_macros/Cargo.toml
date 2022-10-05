@@ -2,14 +2,16 @@
 name = "btr-macros"
 version = "0.1.0"
 authors = [
-   "hoomp <flammable.shower939@anonaddy.me>"
+   "hoomp <flammable.shower939@anonaddy.me>",
+   "Guy Garcia <guy.garcia@protonmail.com>",
 ]
 edition = "2021"
 
 [dependencies]
 proc-macro2 = "1"
 quote = "1"
-syn = { version = "1", features = ["full", "printing", "extra-traits"] }
+syn = { version = "1", features = ["derive", "full", "printing", "extra-traits"] }
+paste = "1.0"
 
 [lib]
 proc-macro = true
