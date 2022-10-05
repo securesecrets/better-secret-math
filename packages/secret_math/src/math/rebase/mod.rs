@@ -13,18 +13,6 @@ make_btr! {
     }
 }
 
-impl Default for Rebase {
-    fn default() -> Self {
-        Self::init()
-    }
-}
-
-impl Default for BtrRebase {
-    fn default() -> Self {
-        Self::init()
-    }
-}
-
 impl Rebase {
     pub fn init() -> Self {
         Rebase {
