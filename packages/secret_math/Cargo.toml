@@ -22,7 +22,7 @@ schemars = "0.8.9"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 borsh = "0.9.3"
 thiserror = "1.0"
-ethnum = { git = "https://github.com/securesecrets/ethnum-rs", tag = "v0.1" }
+ethnum = { git = "https://github.com/securesecrets/ethnum-rs", tag = "v0.1.0" }
 
 paste = "1.0"
 derive-from-ext = "0.2"
