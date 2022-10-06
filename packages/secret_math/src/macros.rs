@@ -29,7 +29,7 @@
 #[macro_export]
 macro_rules! make_btr {
     ($(#[$meta:meta])* $struct:ident {$($element: ident: $ty: ty, $btr_ty: ty, $doc:expr); *}) => {
-        $crate::make_better {
+        $crate::make_better! {
             $(#[$meta])* "btr" $struct {$($element: $ty, $btr_ty, $doc); *}
         }
     }
