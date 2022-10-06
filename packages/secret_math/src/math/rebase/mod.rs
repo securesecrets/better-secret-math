@@ -7,6 +7,7 @@ use cosmwasm_std::Uint256;
 use ethnum::U256;
 
 make_borsh! {
+    #[derive(Default, Eq)]
     Rebase {
         elastic: Uint256, U256, "";
         base: Uint256, U256, ""
