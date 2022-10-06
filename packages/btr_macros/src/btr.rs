@@ -37,7 +37,6 @@ pub fn serde_impl(input: DeriveInput) -> DeriveInput {
                 Debug,
                 PartialEq,
                 Eq,
-                Default,
             )]
             #[serde(deny_unknown_fields)]
             #input
@@ -49,7 +48,6 @@ pub fn serde_impl(input: DeriveInput) -> DeriveInput {
                 Clone,
                 Debug,
                 Eq,
-                Default,
                 PartialEq,
             )]
             #[serde(deny_unknown_fields, rename_all = "snake_case")]
@@ -80,7 +78,6 @@ mod tests {
                 Debug,
                 PartialEq,
                 Eq,
-                Default,
             )]
             #[serde(deny_unknown_fields)]
             pub struct InstantiateMsg {
