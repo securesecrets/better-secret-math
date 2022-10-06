@@ -17,7 +17,7 @@ pub fn derive(input: DeriveInput, ident: Ident) -> DeriveInput {
     } else {
         match input.data {
             syn::Data::Struct(_) => parse_quote! {
-                #[btr_macros::btr_serde]
+                #[btr_macros::borsh_serde]
                 #[derive(derive_from_ext::From)]
                 #[from(#ident)]
                 #input
@@ -33,6 +33,8 @@ pub fn serde_impl(input: DeriveInput) -> DeriveInput {
             #[derive(
                 serde::Serialize,
                 serde::Deserialize,
+                borsh::BorshSerialize,
+                borsh::BorshDeserialize,
                 Clone,
                 Debug,
                 PartialEq,
@@ -46,6 +48,8 @@ pub fn serde_impl(input: DeriveInput) -> DeriveInput {
             #[derive(
                 serde::Serialize,
                 serde::Deserialize,
+                borsh::BorshSerialize,
+                borsh::BorshDeserialize,
                 Clone,
                 Debug,
                 Eq,
@@ -76,6 +80,8 @@ mod tests {
             #[derive(
                 serde::Serialize,
                 serde::Deserialize,
+                borsh::BorshSerialize,
+                borsh::BorshDeserialize,
                 Clone,
                 Debug,
                 PartialEq,

@@ -1,27 +1,15 @@
 use crate::{
     core::{checked_add, checked_sub, muldiv},
-    make_btr,
+    make_borsh,
 };
 use cosmwasm_std::StdResult;
 use cosmwasm_std::Uint256;
 use ethnum::U256;
 
-make_btr! {
+make_borsh! {
     Rebase {
         elastic: Uint256, U256, "";
         base: Uint256, U256, ""
-    }
-}
-
-impl Default for Rebase {
-    fn default() -> Self {
-        Self::init()
-    }
-}
-
-impl Default for BtrRebase {
-    fn default() -> Self {
-        Self::init()
     }
 }
 
