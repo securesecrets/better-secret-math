@@ -569,11 +569,53 @@ pub fn muldiv_fp(x: U256, y: U256) -> StdResult<U256> {
     ))
 }
 
+/// Performs bankers rounding using the nth digit.
+pub fn bankers_round(x: U256, digit: u8) -> U256 {
+    let n = nth_digit(x, digit);
+    let round_up = match n {
+        5 => {
+            let next_digit = nth_digit(x, digit + 1);
+            // Checks if the next digit is the nearest even integer.
+            next_digit % 2 != 0
+        }
+        _ => n > 5,
+    };
+    let precision = exp10(digit);
+
+    (x + if round_up { precision } else { U256::ZERO }) / precision * precision
+}
+
+/// Where x is a positive integer. Supports up to 32 digits.
+pub fn nth_digit(x: U256, digit: u8) -> u8 {
+    ((x / exp10(digit - 1)) % 10).as_u8()
+}
+
 #[cfg(test)]
 mod test {
     use rstest::*;
 
     use super::*;
+
+    #[rstest]
+    #[case("99958", 2, 5)]
+    #[case("99958", 1, 8)]
+    #[case("99958", 5, 9)]
+    fn test_nth_digit(#[case] x: U256, #[case] digit: u8, #[case] expected: u8) {
+        let n = nth_digit(x, digit);
+        assert_eq!(n, expected);
+    }
+
+    #[rstest]
+    #[case("99958", 2, "100000")]
+    #[case("99955", 2, "100000")]
+    #[case("99945", 2, "99900")]
+    #[case("735", 1, "740")]
+    #[case("745", 1, "740")]
+    #[case("755", 1, "760")]
+    #[case("765", 1, "760")]
+    fn test_bankers_rounding(#[case] x: U256, #[case] digit: u8, #[case] expected: U256) {
+        assert_eq!(bankers_round(x, digit), expected);
+    }
 
     #[test]
     fn test_const() {
