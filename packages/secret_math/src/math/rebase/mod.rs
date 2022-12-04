@@ -25,7 +25,7 @@ impl Rebase {
     /// Calculates the base value in relationship to `elastic` and self
     pub fn to_base(&self, elastic: Uint256, round_up: bool) -> StdResult<Uint256> {
         let mut base: Uint256;
-        if self.elastic.is_zero() || self.elastic == self.base {
+        if self.elastic.is_zero() {
             base = elastic;
         } else {
             base = elastic.multiply_ratio(self.base, self.elastic);
@@ -39,7 +39,7 @@ impl Rebase {
     /// Calculates the elastic value in relationship to `base` and self
     pub fn to_elastic(&self, base: Uint256, round_up: bool) -> StdResult<Uint256> {
         let mut elastic: Uint256;
-        if self.base.is_zero() || self.elastic == self.base {
+        if self.base.is_zero() {
             elastic = base;
         } else {
             elastic = base.multiply_ratio(self.elastic, self.base);
@@ -116,7 +116,7 @@ impl BtrRebase {
     /// Calculates the base value in relationship to `elastic` and self
     pub fn to_base(&self, elastic: U256, round_up: bool) -> StdResult<U256> {
         let mut base: U256;
-        if self.elastic == 0 || self.base == self.elastic {
+        if self.elastic == 0 {
             base = elastic;
         } else {
             base = muldiv(elastic, self.base, self.elastic)?;
@@ -130,7 +130,7 @@ impl BtrRebase {
     /// Calculates the elastic value in relationship to `base` and self
     pub fn to_elastic(&self, base: U256, round_up: bool) -> StdResult<U256> {
         let mut elastic: U256;
-        if self.base == 0 || self.base == self.elastic {
+        if self.base == 0 {
             elastic = base;
         } else {
             elastic = muldiv(base, self.elastic, self.base)?;
