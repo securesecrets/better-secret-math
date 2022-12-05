@@ -127,6 +127,12 @@ pub fn assert_with_precision(actual: U256, expected: U256, error: U256) {
     );
 }
 
+/// Performs x * (y / z)
+pub fn mul_ratio(x: U256, y: U256, z: U256) -> StdResult<U256> {
+    let ratio = div(y, z)?;
+    mul(x, ratio)
+}
+
 pub fn log2(x: U256) -> StdResult<U256> {
     if x < SCALE {
         return Err(StdError::generic_err("PRBMathUD60x18 LogInputTooSmall"));
