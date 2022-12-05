@@ -387,6 +387,7 @@ pub(crate) fn most_significant_bit(mut x: U256) -> U256 {
 ///
 /// Caveats:
 /// - This function does not work with fixed-point numbers.
+/// - Applies bankers rounding on the last place to smooth out errors over time.
 ///
 /// @param x The multiplicand as an uint256.
 /// @param y The multiplier as an uint256.
@@ -468,7 +469,7 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     // less than 2^256, this is the final result. We don't need to compute the high bits of the result and prod1
     // is no longer required.
     result = prod0 * inverse;
-    Ok(result)
+    Ok(bankers_round(result, 1))
 }
 
 /// Gets the result of 10^x in constant time. Used for decimal precision calculations (i.e. normalizing different token amounts
@@ -554,18 +555,21 @@ pub fn muldiv_fp(x: U256, y: U256) -> StdResult<U256> {
         return Ok(result);
     }
 
-    Ok(add(
-        mul(
-            or(
-                div(u_sub(prod0, remainder), SCALE_LPOTD),
-                mul(
-                    u_sub(prod1, gt(remainder, prod0)),
-                    add(div(u_sub(U256::ZERO, SCALE_LPOTD), SCALE_LPOTD), U256::ONE),
+    Ok(bankers_round(
+        add(
+            mul(
+                or(
+                    div(u_sub(prod0, remainder), SCALE_LPOTD),
+                    mul(
+                        u_sub(prod1, gt(remainder, prod0)),
+                        add(div(u_sub(U256::ZERO, SCALE_LPOTD), SCALE_LPOTD), U256::ONE),
+                    ),
                 ),
+                SCALE_INVERSE,
             ),
-            SCALE_INVERSE,
+            round_up_unit,
         ),
-        round_up_unit,
+        1,
     ))
 }
 
