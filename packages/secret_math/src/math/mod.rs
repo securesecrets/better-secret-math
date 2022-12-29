@@ -11,10 +11,12 @@ use ethnum::U256;
 
 pub use rebase::*;
 
+use self::tens::exp10;
+
 /// 10^36 or 1e36
-pub const DOUBLE_SCALE: U256 = U256::new(1_000_000_000_000_000_000_000_000_000_000_000_000u128);
+pub const DOUBLE_SCALE: U256 = exp10(36);
 /// 10^18 or 1e18
-pub const SCALE: U256 = U256::new(1_000_000_000_000_000_000u128);
+pub const SCALE: U256 = exp10(18);
 pub const SCALE_u128: u128 = 1_000_000_000_000_000_000u128;
 
 /// Half of 10^18.

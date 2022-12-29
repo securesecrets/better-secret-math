@@ -1,11 +1,9 @@
 //! Common mathematical functions used in ud60x18 and sd59x18. Note that this shared library does not always assume the unsigned 60.18-decimal fixed-point representation. When it does not, it is explicitly mentioned in the documentation.
 //! Forks methods from here - https://github.com/paulrberg/prb-math/blob/main/contracts/PRBMath.sol.
-use core::panic;
-use std::ops::Not;
-
 use super::asm::*;
-use super::tens::*;
+pub use super::tens::exp10;
 use cosmwasm_std::{OverflowError, OverflowOperation, StdError, StdResult};
+use std::ops::Not;
 
 use ethnum::U256;
 const SCALE: U256 = U256::new(1_000_000_000_000_000_000u128);
@@ -472,51 +470,6 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     Ok(bankers_round(result, 1))
 }
 
-/// Gets the result of 10^x in constant time. Used for decimal precision calculations (i.e. normalizing different token amounts
-/// based off their token decimals, etc). In most cases, x would be between 0 and 18, but we allow for up to 32 in case something special comes up.
-///
-/// @param x - integer between 0 and 32
-///
-/// @return result 10^x as U256
-pub const fn exp10(x: u8) -> U256 {
-    match x {
-        0 => QUINTILLIONTH,
-        1 => HUN_QUADTH,
-        2 => TEN_QUADTH,
-        3 => QUADTH,
-        4 => HUN_TRILTH,
-        5 => TEN_TRILTH,
-        6 => TRILTH,
-        7 => HUN_BILTH,
-        8 => TEN_BILTH,
-        9 => BILTH,
-        10 => HUN_MILTH,
-        11 => TEN_MILTH,
-        12 => MILTH,
-        13 => HUN_THOUSANDTH,
-        14 => TEN_THOUSANDTH,
-        15 => THOUSANDTH,
-        16 => HUNDREDTH,
-        17 => TENTH,
-        18 => ONE,
-        19 => TEN,
-        20 => HUNDRED,
-        21 => THOUSAND,
-        22 => TEN_THOUSAND,
-        23 => HUN_THOUSAND,
-        24 => MIL,
-        25 => TEN_MIL,
-        26 => HUN_MIL,
-        27 => BIL,
-        28 => TEN_BIL,
-        29 => HUN_BIL,
-        30 => TRIL,
-        31 => TEN_TRIL,
-        32 => HUN_TRIL,
-        _ => panic!("Out of range."),
-    }
-}
-
 /// @notice Calculates floor(x*y÷1e18) with full precision.
 ///
 /// @dev Variant of "mulDiv" with constant folding, i.e. in which the denominator is always 1e18. Before returning the
@@ -584,14 +537,14 @@ pub fn bankers_round(x: U256, digit: u8) -> U256 {
         }
         _ => n > 5,
     };
-    let precision = exp10(digit);
+    let precision = exp10(digit as u16);
 
     (x + if round_up { precision } else { U256::ZERO }) / precision * precision
 }
 
 /// Where x is a positive integer. Supports up to 32 digits.
 pub fn nth_digit(x: U256, digit: u8) -> u8 {
-    ((x / exp10(digit - 1)) % 10).as_u8()
+    ((x / exp10((digit - 1) as u16)) % 10).as_u8()
 }
 
 #[cfg(test)]
