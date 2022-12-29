@@ -513,7 +513,7 @@ pub const fn exp10(x: u8) -> U256 {
         30 => TRIL,
         31 => TEN_TRIL,
         32 => HUN_TRIL,
-        _ => panic!("Not using this correctly :|"),
+        _ => panic!("Out of range."),
     }
 }
 

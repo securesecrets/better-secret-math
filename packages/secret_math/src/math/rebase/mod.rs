@@ -188,7 +188,7 @@ fn test_rebase_math() {
 }
 
 #[test]
-fn test_vault_rebase_math() {
+fn test_rebase_math_2() {
     use std::ops::Div;
 
     let mut total_borrowed = Rebase::init();

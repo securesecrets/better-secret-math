@@ -108,6 +108,7 @@ pub fn from_uint(x: Uint256) -> StdResult<U256> {
     Ok(x * SCALE)
 }
 
+/// TO-DO: Deprecate this
 /// Asserts that 2 unsigned 60.18-decimal fixed-point values are within some decimal precision error.
 pub fn assert_with_precision(actual: U256, expected: U256, error: U256) {
     use crate::core::abs_diff;
@@ -326,7 +327,7 @@ pub fn gm(x: U256, y: U256) -> StdResult<U256> {
 
     // We don't need to multiply by the SCALE here because the x*y product had already picked up a factor of SCALE
     // during multiplication. See the comments within the "sqrt" pub fn.
-    Ok(sqrt(xy)?)
+    sqrt(xy)
 }
 
 /// @notice Calculates the natural logarithm of x.
