@@ -2,14 +2,13 @@
 //!
 
 use super::{
-    asm::gt, core, tens::*, MAX_UD60x18, MAX_WHOLE_UD60x18, SCALE_u128, DOUBLE_SCALE, HALF_SCALE,
-    LOG2_E, SCALE,
+    asm::gt, core, tens::*, MAX_UD60x18, MAX_WHOLE_UD60x18, DOUBLE_SCALE, HALF_SCALE, LOG2_E, SCALE,
 };
 use crate::{
     asm::{self},
     core::{most_significant_bit, muldiv, muldiv_fp},
 };
-use cosmwasm_std::{Decimal256, DivideByZeroError, StdError, StdResult, Uint256};
+use cosmwasm_std::{DivideByZeroError, StdError, StdResult};
 use ethnum::{AsU256, U256};
 
 pub enum UD60x18Error {
@@ -191,7 +190,7 @@ pub fn mul_ratio(x: U256, y: U256, z: U256) -> StdResult<U256> {
 
 pub fn log2(x: U256) -> StdResult<U256> {
     if x < SCALE {
-        return Err(StdError::generic_err("PRBMathUD60x18 LogInputTooSmall"));
+        return Err(UD60x18Error::LogInputTooSmall(x).into());
     }
     // Calculate the integer part of the logarithm and add it to the result and finally calculate y = x * 2^(-n).
     let n = most_significant_bit(x / SCALE);
@@ -242,7 +241,7 @@ pub fn log2(x: U256) -> StdResult<U256> {
 /// @return result The common logarithm as an unsigned 60.18-decimal fixed-point number.
 pub fn log10(x: U256) -> StdResult<U256> {
     if x < SCALE {
-        return Err(StdError::generic_err("Log too small."));
+        return Err(UD60x18Error::LogInputTooSmall(x).into());
     }
     let mut result: U256;
     // Note that the "mul" in this block is the assembly multiplication operation, not the "mul" pub fn defined
@@ -374,10 +373,7 @@ pub fn gm(x: U256, y: U256) -> StdResult<U256> {
     // Checking for overflow this way is faster than letting Solidity do it.
     let xy = x * y;
     if xy / x != y {
-        return Err(StdError::generic_err(format!(
-            "PRBMathUD60x18__GmOverflow {} {}",
-            x, y
-        )));
+        return Err(UD60x18Error::GmOverflow(x, y).into());
     }
 
     // We don't need to multiply by the SCALE here because the x*y product had already picked up a factor of SCALE
@@ -436,9 +432,9 @@ pub fn pi() -> U256 {
 pub fn pow(x: U256, y: U256) -> StdResult<U256> {
     if x == 0 {
         if y == 0 {
-            return Ok(SCALE);
+            Ok(SCALE)
         } else {
-            return Ok(U256::ZERO);
+            Ok(U256::ZERO)
         }
     } else {
         Ok(exp2(mul(log2(x)?, y)?)?)
@@ -493,10 +489,7 @@ pub fn scale() -> U256 {
 /// @return result The result as an unsigned 60.18-decimal fixed-point .
 pub fn sqrt(x: U256) -> StdResult<U256> {
     if x > MAX_UD60x18 / SCALE {
-        return Err(StdError::generic_err(format!(
-            "PRBMathUD60x18__SqrtOverflow {}",
-            x
-        )));
+        return Err(UD60x18Error::SqrtOverflow(x).into());
     }
     // Multiply x by the SCALE to account for the factor of SCALE that is picked up when multiplying two unsigned
     // 60.18-decimal fixed-point numbers together (in this case, those two numbers are both the square root).
@@ -506,6 +499,7 @@ pub fn sqrt(x: U256) -> StdResult<U256> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use cosmwasm_std::{Decimal256, Uint256};
     use rstest::*;
 
     #[rstest]
