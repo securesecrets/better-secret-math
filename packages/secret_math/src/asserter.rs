@@ -34,6 +34,17 @@ impl MathAsserter {
         assert_eq!(expected, bankers_round(actual, n));
     }
 
+    /// Asserts that expected and actual are equal after dividing actual by 10^n.
+    pub fn close_trim_u256(
+        expected: impl Into<U256> + Copy,
+        actual: impl Into<U256> + Copy,
+        n: u8,
+    ) {
+        let actual: U256 = actual.into();
+        let expected: U256 = expected.into();
+        assert_eq!(expected, actual / exp10(n.into()));
+    }
+
     // Asserts that expected and actual are within 17 decimal precision of each other using bankers rounding on the actual value.
     pub fn bigint(expected: impl Into<U256> + Copy, actual: impl Into<U256> + Copy) {
         Self::close_u256(expected, actual, 1);
