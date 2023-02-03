@@ -1,7 +1,7 @@
-use cosmwasm_std::{Uint128, Uint256};
+use cosmwasm_std::{Decimal256, Uint128, Uint256};
 use ethnum::U256;
 
-use crate::core::{bankers_round, exp10, muldiv_fp};
+use crate::core::{abs_diff, bankers_round, exp10, muldiv_fp};
 
 pub struct MathAsserter;
 
@@ -75,5 +75,24 @@ impl MathAsserter {
             Uint128::new(expected),
             actual / Uint128::new(10u128.pow(decimals))
         );
+    }
+
+    pub fn get_deviation(
+        expected: impl Into<U256> + Copy,
+        actual: impl Into<U256> + Copy,
+    ) -> Decimal256 {
+        let expected = expected.into();
+        let actual = actual.into();
+        let diff = abs_diff(expected, actual);
+        Decimal256::from_ratio(diff, expected)
+    }
+
+    pub fn within_deviation(
+        expected: impl Into<U256> + Copy,
+        actual: impl Into<U256> + Copy,
+        deviation: Decimal256,
+    ) {
+        let actual_deviation = Self::get_deviation(expected, actual);
+        assert!(actual_deviation <= deviation);
     }
 }
