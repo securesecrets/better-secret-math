@@ -82,6 +82,9 @@ impl MathAsserter {
         actual: impl Into<U256> + Copy,
     ) -> Decimal256 {
         let expected = expected.into();
+        if expected == U256::ZERO {
+            return Decimal256::zero();
+        }
         let actual = actual.into();
         let diff = abs_diff(expected, actual);
         Decimal256::from_ratio(diff, expected)
