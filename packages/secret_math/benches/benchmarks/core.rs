@@ -1,7 +1,7 @@
 use better_secret_math::{
-    core::{muldiv, muldiv_fp},
+    core::{muldiv, muldiv18},
     ud60x18::mul,
-    SCALE_u128, SCALE,
+    UNIT_u128, UNIT,
 };
 use cosmwasm_std::{Decimal256, OverflowError, StdResult, Uint256};
 use criterion::{black_box, criterion_group, Criterion};
@@ -94,14 +94,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Muldiv");
 
     group.bench_function("U256::muldiv", |b| {
-        b.iter(|| muldiv(black_box(sml[2]), black_box(sml[3]), black_box(SCALE)))
+        b.iter(|| muldiv(black_box(sml[2]), black_box(sml[3]), black_box(UNIT)))
     });
 
     group.bench_function("Uint256::multiply_ratio", |b| {
         b.iter(|| {
             black_box(sml_uint[2]).multiply_ratio(
                 black_box(sml_uint[3]),
-                black_box(Uint256::from_u128(SCALE_u128)),
+                black_box(Uint256::from_u128(UNIT_u128)),
             )
         })
     });
@@ -113,8 +113,8 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    group.bench_function("U256::muldiv_fp", |b| {
-        b.iter(|| muldiv_fp(black_box(sml[2]), black_box(sml[3])))
+    group.bench_function("U256::muldiv18", |b| {
+        b.iter(|| muldiv18(black_box(sml[2]), black_box(sml[3])))
     });
 
     group.finish();

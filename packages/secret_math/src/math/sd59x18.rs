@@ -1,16 +1,16 @@
 use cosmwasm_std::{StdError, StdResult};
 use ethnum::{I256, U256};
 
-use crate::asm::{sgt, sub};
-use crate::core::muldiv_fp;
+use crate::asm::Asm;
+use crate::core::muldiv18;
 
 use super::core;
-use super::{HALF_SCALE_u128, LOG2_E_u128, SCALE_u128};
+use super::{HALF_UNIT_u128, LOG2_E_u128, UNIT_u128};
 
-const SCALE: I256 = I256::new(SCALE_u128 as i128);
-const HALF_SCALE: I256 = I256::new(HALF_SCALE_u128 as i128);
+const UNIT: I256 = I256::new(UNIT_u128 as i128);
+const HALF_UNIT: I256 = I256::new(HALF_UNIT_u128 as i128);
 const LOG2_E: I256 = I256::new(LOG2_E_u128 as i128);
-const DOUBLE_SCALE: I256 = I256::new(1_000_000_000_000_000_000_000_000_000_000_000_000i128);
+const DOUBLE_UNIT: I256 = I256::new(1_000_000_000_000_000_000_000_000_000_000_000_000i128);
 
 const MAX_SD59x18: I256 = I256::MAX;
 
@@ -32,7 +32,7 @@ const MIN_WHOLE_SD59x18: I256 = I256::from_words(
 pub fn pow(x: I256, y: I256) -> StdResult<I256> {
     if x == 0 {
         if y == 0 {
-            return Ok(SCALE);
+            return Ok(UNIT);
         } else {
             return Ok(I256::ZERO);
         }
@@ -71,7 +71,7 @@ pub fn mul(x: I256, y: I256) -> StdResult<I256> {
     ax = if x < 0 { (-x).as_u256() } else { x.as_u256() };
     ay = if y < 0 { (-y).as_u256() } else { y.as_u256() };
 
-    let r_abs = muldiv_fp(ax, ay)?;
+    let r_abs = muldiv18(ax, ay)?;
     if r_abs > MAX_SD59x18.as_u256() {
         return Err(StdError::generic_err(format!(
             "PRBMathSD59x18__MulOverflow {}",
@@ -79,8 +79,8 @@ pub fn mul(x: I256, y: I256) -> StdResult<I256> {
         )));
     }
 
-    let sx = sgt(x, sub(U256::ZERO, U256::ONE));
-    let sy = sgt(y, sub(U256::ZERO, U256::ONE));
+    let sx = Asm::sgt(x, Asm::sub(U256::ZERO, U256::ONE)?);
+    let sy = Asm::sgt(y, Asm::sub(U256::ZERO, U256::ONE)?);
 
     let result = if sx ^ sy == 1 {
         r_abs.as_i256() * I256::MINUS_ONE
@@ -120,7 +120,7 @@ pub fn exp(x: I256) -> StdResult<I256> {
 
     // Do the fixed-point multiplication inline to save gas.
     let double_scale_product = x * LOG2_E;
-    Ok(exp2((double_scale_product + HALF_SCALE) / SCALE)?)
+    Ok(exp2((double_scale_product + HALF_UNIT) / UNIT)?)
 }
 
 /// @notice Calculates the binary exponent of x using the binary fraction method.
@@ -144,11 +144,11 @@ pub fn exp2(x: I256) -> StdResult<I256> {
             return Ok(I256::ZERO);
         }
 
-        // Do the fixed-point inversion inline to save gas. The numerator is SCALE * SCALE.
-        Ok(DOUBLE_SCALE / exp2(x * I256::MINUS_ONE)?)
+        // Do the fixed-point inversion inline to save gas. The numerator is UNIT * UNIT.
+        Ok(DOUBLE_UNIT / exp2(x * I256::MINUS_ONE)?)
     } else {
         // 2^192 doesn't fit within the 192.64-bit format used internally in this function.
-        if x >= 192 * SCALE {
+        if x >= 192 * UNIT {
             return Err(StdError::generic_err(format!(
                 "PRBMathSD59x18__Exp2InputTooBig {}",
                 x
@@ -156,7 +156,7 @@ pub fn exp2(x: I256) -> StdResult<I256> {
         }
 
         // Convert x to the 192.64-bit fixed-point format.
-        let x192x64 = (x.as_u256() << 64) / SCALE.as_u256();
+        let x192x64 = (x.as_u256() << 64) / UNIT.as_u256();
 
         // Safe to convert the result to int256 directly because the maximum input allowed is 192.
         Ok(core::exp2(x192x64).as_i256())
@@ -180,7 +180,7 @@ pub fn exp2(x: I256) -> StdResult<I256> {
 pub fn ln(x: I256) -> StdResult<I256> {
     // Do the fixed-point multiplication inline to save gas. This is overflow-safe because the maximum value that log2(x)
     // can return is 195205294292027477728.
-    Ok((log2(x)? * SCALE) / LOG2_E)
+    Ok((log2(x)? * UNIT) / LOG2_E)
 }
 
 /// @notice Calculates the binary logarithm of x.
@@ -202,38 +202,38 @@ pub fn log2(mut x: I256) -> StdResult<I256> {
     }
     let sign: I256;
     // This works because log2(x) = -log2(1/x).
-    if x >= SCALE {
+    if x >= UNIT {
         sign = I256::ONE;
     } else {
         sign = I256::MINUS_ONE;
-        // Do the fixed-point inversion inline to save gas. The numerator is SCALE * SCALE.
+        // Do the fixed-point inversion inline to save gas. The numerator is UNIT * UNIT.
         x = I256::new(1000000000000000000000000000000000000i128) / x;
     }
 
     // Calculate the integer part of the logarithm and add it to the result and finally calculate y = x * 2^(-n).
-    let a = (x / SCALE).as_u256();
+    let a = (x / UNIT).as_u256();
     let n = super::core::most_significant_bit(a).as_i256();
 
     // The integer part of the logarithm as a signed 59.18-decimal fixed-point number. The operation can't overflow
-    // because n is maximum 255, SCALE is 1e18 and sign is either 1 or -1.
-    let mut result = n * SCALE;
+    // because n is maximum 255, UNIT is 1e18 and sign is either 1 or -1.
+    let mut result = n * UNIT;
 
     // This is y = x * 2^(-n).
     let mut y = x >> n;
 
     // If y = 1, the fractional part is zero.
-    if y == SCALE {
+    if y == UNIT {
         return Ok(result * sign);
     }
 
     // Calculate the fractional part via the iterative approximation.
     // The "delta >>= 1" part is equivalent to "delta /= 2", but shifting bits is faster.
-    let mut delta = HALF_SCALE;
+    let mut delta = HALF_UNIT;
     while delta > 0 {
-        y = (y * y) / SCALE;
+        y = (y * y) / UNIT;
 
         // Is y^2 > 2 and so in the range [2,4)?
-        if y >= 2 * SCALE {
+        if y >= 2 * UNIT {
             // Add the 2^(-m) factor to the logarithm.
             result += delta;
 
@@ -251,7 +251,7 @@ pub fn log2(mut x: I256) -> StdResult<I256> {
 ///
 /// Requirements:
 /// - x cannot be negative.
-/// - x must be less than MAX_SD59x18 / SCALE.
+/// - x must be less than MAX_SD59x18 / UNIT.
 ///
 /// @param x The signed 59.18-decimal fixed-point number for which to calculate the square root.
 /// @return result The result as a signed 59.18-decimal fixed-point .
@@ -262,20 +262,20 @@ pub fn sqrt(x: I256) -> StdResult<I256> {
             x
         )));
     }
-    if x > MAX_SD59x18 / SCALE {
+    if x > MAX_SD59x18 / UNIT {
         return Err(StdError::generic_err(format!(
             "PRBMathSD59x18__SqrtOverflow {}",
             x
         )));
     }
-    // Multiply x by the SCALE to account for the factor of SCALE that is picked up when multiplying two signed
+    // Multiply x by the UNIT to account for the factor of UNIT that is picked up when multiplying two signed
     // 59.18-decimal fixed-point numbers together (in this case, those two numbers are both the square root).
-    Ok(core::sqrt((x * SCALE).as_u256()).as_i256())
+    Ok(core::sqrt((x * UNIT).as_u256()).as_i256())
 }
 
 /// Gets the scale as a signed int 256
 pub fn scale() -> I256 {
-    SCALE
+    UNIT
 }
 
 #[cfg(test)]

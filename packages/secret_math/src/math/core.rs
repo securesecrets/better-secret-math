@@ -1,17 +1,17 @@
 //! Common mathematical functions used in ud60x18 and sd59x18. Note that this shared library does not always assume the unsigned 60.18-decimal fixed-point representation. When it does not, it is explicitly mentioned in the documentation.
 //! Forks methods from here - https://github.com/paulrberg/prb-math/blob/main/contracts/PRBMath.sol.
-use super::asm::*;
 pub use super::tens::exp10;
+use crate::asm::Asm;
 use cosmwasm_std::{OverflowError, OverflowOperation, StdError, StdResult};
 use std::ops::Not;
 
 use ethnum::U256;
-const SCALE: U256 = U256::new(1_000_000_000_000_000_000u128);
-/// Largest power of two divisor of SCALE.
-const SCALE_LPOTD: U256 = U256::new(262144u128);
+const UNIT: U256 = U256::new(1_000_000_000_000_000_000u128);
+/// Largest power of two divisor of UNIT.
+const UNIT_LPOTD: U256 = U256::new(262144u128);
 
-/// SCALE inverted mod 2^256.
-const SCALE_INVERSE: U256 = U256::from_words(
+/// UNIT inverted mod 2^256.
+const UNIT_INVERSE: U256 = U256::from_words(
     229681740086561209518615317264092320238,
     298919117238935307856972083127780443753,
 );
@@ -108,13 +108,13 @@ pub fn sqrt(x: U256) -> U256 {
     }
 
     // The operations can never overflow because the result is max 2^127 when it enters this block.
-    result = (result + x / result) >> 1;
-    result = (result + x / result) >> 1;
-    result = (result + x / result) >> 1;
-    result = (result + x / result) >> 1;
-    result = (result + x / result) >> 1;
-    result = (result + x / result) >> 1;
-    result = (result + x / result) >> 1; // Seven iterations should be enough
+    result = result + x / result >> 1;
+    result = result + x / result >> 1;
+    result = result + x / result >> 1;
+    result = result + x / result >> 1;
+    result = result + x / result >> 1;
+    result = result + x / result >> 1;
+    result = result + x / result >> 1; // Seven iterations should be enough
     let rounded_down_result = x / result;
     let result = if result <= rounded_down_result {
         rounded_down_result
@@ -129,205 +129,235 @@ pub fn sqrt(x: U256) -> U256 {
 /// Has to use 192.64-bit fixed-point numbers so x is the exponent as an unsigned 192.64-bit fixed-point number.
 ///
 /// The result is an unsigned 60.18-decimal fixed-point number.
-pub(crate) fn exp2(x: U256) -> U256 {
+pub fn exp2(x: U256) -> U256 {
     // Guaranteed not to panic.
     let mut result =
         U256::from_str_hex("0x800000000000000000000000000000000000000000000000").unwrap();
 
-    if x & U256::new(0x8000000000000000u128) > 0 {
-        result = (result * U256::new(0x16A09E667F3BCC909)) >> 64;
-    }
-    if x & U256::new(0x4000000000000000) > 0 {
-        result = (result * U256::new(0x1306FE0A31B7152DF)) >> 64;
-    }
-    if x & U256::new(0x2000000000000000) > 0 {
-        result = (result * U256::new(0x1172B83C7D517ADCE)) >> 64;
-    }
-    if x & U256::new(0x1000000000000000) > 0 {
-        result = (result * U256::new(0x10B5586CF9890F62A)) >> 64;
-    }
-    if x & U256::new(0x800000000000000) > 0 {
-        result = (result * U256::new(0x1059B0D31585743AE)) >> 64;
-    }
-    if x & U256::new(0x400000000000000) > 0 {
-        result = (result * U256::new(0x102C9A3E778060EE7)) >> 64;
-    }
-    if x & U256::new(0x200000000000000) > 0 {
-        result = (result * U256::new(0x10163DA9FB33356D8)) >> 64;
-    }
-    if x & U256::new(0x100000000000000) > 0 {
-        result = (result * U256::new(0x100B1AFA5ABCBED61)) >> 64;
-    }
-    if x & U256::new(0x80000000000000) > 0 {
-        result = (result * U256::new(0x10058C86DA1C09EA2)) >> 64;
-    }
-    if x & U256::new(0x40000000000000) > 0 {
-        result = (result * U256::new(0x1002C605E2E8CEC50)) >> 64;
-    }
-    if x & U256::new(0x20000000000000) > 0 {
-        result = (result * U256::new(0x100162F3904051FA1)) >> 64;
-    }
-    if x & U256::new(0x10000000000000) > 0 {
-        result = (result * U256::new(0x1000B175EFFDC76BA)) >> 64;
-    }
-    if x & U256::new(0x8000000000000) > 0 {
-        result = (result * U256::new(0x100058BA01FB9F96D)) >> 64;
-    }
-    if x & U256::new(0x4000000000000) > 0 {
-        result = (result * U256::new(0x10002C5CC37DA9492)) >> 64;
-    }
-    if x & U256::new(0x2000000000000) > 0 {
-        result = (result * U256::new(0x1000162E525EE0547)) >> 64;
-    }
-    if x & U256::new(0x1000000000000) > 0 {
-        result = (result * U256::new(0x10000B17255775C04)) >> 64;
-    }
-    if x & U256::new(0x800000000000) > 0 {
-        result = (result * U256::new(0x1000058B91B5BC9AE)) >> 64;
-    }
-    if x & U256::new(0x400000000000) > 0 {
-        result = (result * U256::new(0x100002C5C89D5EC6D)) >> 64;
-    }
-    if x & U256::new(0x200000000000) > 0 {
-        result = (result * U256::new(0x10000162E43F4F831)) >> 64;
-    }
-    if x & U256::new(0x100000000000) > 0 {
-        result = (result * U256::new(0x100000B1721BCFC9A)) >> 64;
-    }
-    if x & U256::new(0x80000000000) > 0 {
-        result = (result * U256::new(0x10000058B90CF1E6E)) >> 64;
-    }
-    if x & U256::new(0x40000000000) > 0 {
-        result = (result * U256::new(0x1000002C5C863B73F)) >> 64;
-    }
-    if x & U256::new(0x20000000000) > 0 {
-        result = (result * U256::new(0x100000162E430E5A2)) >> 64;
-    }
-    if x & U256::new(0x10000000000) > 0 {
-        result = (result * U256::new(0x1000000B172183551)) >> 64;
-    }
-    if x & U256::new(0x8000000000) > 0 {
-        result = (result * U256::new(0x100000058B90C0B49)) >> 64;
-    }
-    if x & U256::new(0x4000000000) > 0 {
-        result = (result * U256::new(0x10000002C5C8601CC)) >> 64;
-    }
-    if x & U256::new(0x2000000000) > 0 {
-        result = (result * U256::new(0x1000000162E42FFF0)) >> 64;
-    }
-    if x & U256::new(0x1000000000) > 0 {
-        result = (result * U256::new(0x10000000B17217FBB)) >> 64;
-    }
-    if x & U256::new(0x800000000) > 0 {
-        result = (result * U256::new(0x1000000058B90BFCE)) >> 64;
-    }
-    if x & U256::new(0x400000000) > 0 {
-        result = (result * U256::new(0x100000002C5C85FE3)) >> 64;
-    }
-    if x & U256::new(0x200000000) > 0 {
-        result = (result * U256::new(0x10000000162E42FF1)) >> 64;
-    }
-    if x & U256::new(0x100000000) > 0 {
-        result = (result * U256::new(0x100000000B17217F8)) >> 64;
-    }
-    if x & U256::new(0x80000000) > 0 {
-        result = (result * U256::new(0x10000000058B90BFC)) >> 64;
-    }
-    if x & U256::new(0x40000000) > 0 {
-        result = (result * U256::new(0x1000000002C5C85FE)) >> 64;
-    }
-    if x & U256::new(0x20000000) > 0 {
-        result = (result * U256::new(0x100000000162E42FF)) >> 64;
-    }
-    if x & U256::new(0x10000000) > 0 {
-        result = (result * U256::new(0x1000000000B17217F)) >> 64;
-    }
-    if x & U256::new(0x8000000) > 0 {
-        result = (result * U256::new(0x100000000058B90C0)) >> 64;
-    }
-    if x & U256::new(0x4000000) > 0 {
-        result = (result * U256::new(0x10000000002C5C860)) >> 64;
-    }
-    if x & U256::new(0x2000000) > 0 {
-        result = (result * U256::new(0x1000000000162E430)) >> 64;
-    }
-    if x & U256::new(0x1000000) > 0 {
-        result = (result * U256::new(0x10000000000B17218)) >> 64;
-    }
-    if x & U256::new(0x800000) > 0 {
-        result = (result * U256::new(0x1000000000058B90C)) >> 64;
-    }
-    if x & U256::new(0x400000) > 0 {
-        result = (result * U256::new(0x100000000002C5C86)) >> 64;
-    }
-    if x & U256::new(0x200000) > 0 {
-        result = (result * U256::new(0x10000000000162E43)) >> 64;
-    }
-    if x & U256::new(0x100000) > 0 {
-        result = (result * U256::new(0x100000000000B1721)) >> 64;
-    }
-    if x & U256::new(0x80000) > 0 {
-        result = (result * U256::new(0x10000000000058B91)) >> 64;
-    }
-    if x & U256::new(0x40000) > 0 {
-        result = (result * U256::new(0x1000000000002C5C8)) >> 64;
-    }
-    if x & U256::new(0x20000) > 0 {
-        result = (result * U256::new(0x100000000000162E4)) >> 64;
-    }
-    if x & U256::new(0x10000) > 0 {
-        result = (result * U256::new(0x1000000000000B172)) >> 64;
-    }
-    if x & U256::new(0x8000) > 0 {
-        result = (result * U256::new(0x100000000000058B9)) >> 64;
-    }
-    if x & U256::new(0x4000) > 0 {
-        result = (result * U256::new(0x10000000000002C5D)) >> 64;
-    }
-    if x & U256::new(0x2000) > 0 {
-        result = (result * U256::new(0x1000000000000162E)) >> 64;
-    }
-    if x & U256::new(0x1000) > 0 {
-        result = (result * U256::new(0x10000000000000B17)) >> 64;
-    }
-    if x & U256::new(0x800) > 0 {
-        result = (result * U256::new(0x1000000000000058C)) >> 64;
-    }
-    if x & U256::new(0x400) > 0 {
-        result = (result * U256::new(0x100000000000002C6)) >> 64;
-    }
-    if x & U256::new(0x200) > 0 {
-        result = (result * U256::new(0x10000000000000163)) >> 64;
-    }
-    if x & U256::new(0x100) > 0 {
-        result = (result * U256::new(0x100000000000000B1)) >> 64;
-    }
-    if x & U256::new(0x80) > 0 {
-        result = (result * U256::new(0x10000000000000059)) >> 64;
-    }
-    if x & U256::new(0x40) > 0 {
-        result = (result * U256::new(0x1000000000000002C)) >> 64;
-    }
-    if x & U256::new(0x20) > 0 {
-        result = (result * U256::new(0x10000000000000016)) >> 64;
-    }
-    if x & U256::new(0x10) > 0 {
-        result = (result * U256::new(0x1000000000000000B)) >> 64;
-    }
-    if x & U256::new(0x8) > 0 {
-        result = (result * U256::new(0x10000000000000006)) >> 64;
-    }
-    if x & U256::new(0x4) > 0 {
-        result = (result * U256::new(0x10000000000000003)) >> 64;
-    }
-    if x & U256::new(0x2) > 0 {
-        result = (result * U256::new(0x10000000000000001)) >> 64;
-    }
-    if x & U256::new(0x1) > 0 {
-        result = (result * U256::new(0x10000000000000001)) >> 64;
+    if x & 0xFF00000000000000 > 0 {
+        if x & 0x8000000000000000u128 > 0 {
+            result = (result * 0x16A09E667F3BCC909) >> 64;
+        }
+        if x & 0x4000000000000000 > 0 {
+            result = (result * 0x1306FE0A31B7152DF) >> 64;
+        }
+        if x & 0x2000000000000000 > 0 {
+            result = (result * 0x1172B83C7D517ADCE) >> 64;
+        }
+        if x & 0x1000000000000000 > 0 {
+            result = (result * 0x10B5586CF9890F62A) >> 64;
+        }
+        if x & 0x800000000000000 > 0 {
+            result = (result * 0x1059B0D31585743AE) >> 64;
+        }
+        if x & 0x400000000000000 > 0 {
+            result = (result * 0x102C9A3E778060EE7) >> 64;
+        }
+        if x & 0x200000000000000 > 0 {
+            result = (result * 0x10163DA9FB33356D8) >> 64;
+        }
+        if x & 0x100000000000000 > 0 {
+            result = (result * 0x100B1AFA5ABCBED61) >> 64;
+        }
     }
 
-    result *= SCALE;
+    if x & 0xFF000000000000 > 0 {
+        if x & 0x80000000000000 > 0 {
+            result = (result * 0x10058C86DA1C09EA2) >> 64;
+        }
+        if x & 0x40000000000000 > 0 {
+            result = (result * 0x1002C605E2E8CEC50) >> 64;
+        }
+        if x & 0x20000000000000 > 0 {
+            result = (result * 0x100162F3904051FA1) >> 64;
+        }
+        if x & 0x10000000000000 > 0 {
+            result = (result * 0x1000B175EFFDC76BA) >> 64;
+        }
+        if x & 0x8000000000000 > 0 {
+            result = (result * 0x100058BA01FB9F96D) >> 64;
+        }
+        if x & 0x4000000000000 > 0 {
+            result = (result * 0x10002C5CC37DA9492) >> 64;
+        }
+        if x & 0x2000000000000 > 0 {
+            result = (result * 0x1000162E525EE0547) >> 64;
+        }
+        if x & 0x1000000000000 > 0 {
+            result = (result * 0x10000B17255775C04) >> 64;
+        }
+    }
+    if x & 0xFF0000000000 > 0 {
+        if x & 0x800000000000 > 0 {
+            result = (result * 0x1000058B91B5BC9AE) >> 64;
+        }
+        if x & 0x400000000000 > 0 {
+            result = (result * 0x100002C5C89D5EC6D) >> 64;
+        }
+        if x & 0x200000000000 > 0 {
+            result = (result * 0x10000162E43F4F831) >> 64;
+        }
+        if x & 0x100000000000 > 0 {
+            result = (result * 0x100000B1721BCFC9A) >> 64;
+        }
+        if x & 0x80000000000 > 0 {
+            result = (result * 0x10000058B90CF1E6E) >> 64;
+        }
+        if x & 0x40000000000 > 0 {
+            result = (result * 0x1000002C5C863B73F) >> 64;
+        }
+        if x & 0x20000000000 > 0 {
+            result = (result * 0x100000162E430E5A2) >> 64;
+        }
+        if x & 0x10000000000 > 0 {
+            result = (result * 0x1000000B172183551) >> 64;
+        }
+    }
+
+    if x & 0xFF00000000 > 0 {
+        if x & 0x8000000000 > 0 {
+            result = (result * 0x100000058B90C0B49) >> 64;
+        }
+        if x & 0x4000000000 > 0 {
+            result = (result * 0x10000002C5C8601CC) >> 64;
+        }
+        if x & 0x2000000000 > 0 {
+            result = (result * 0x1000000162E42FFF0) >> 64;
+        }
+        if x & 0x1000000000 > 0 {
+            result = (result * 0x10000000B17217FBB) >> 64;
+        }
+        if x & 0x800000000 > 0 {
+            result = (result * 0x1000000058B90BFCE) >> 64;
+        }
+        if x & 0x400000000 > 0 {
+            result = (result * 0x100000002C5C85FE3) >> 64;
+        }
+        if x & 0x200000000 > 0 {
+            result = (result * 0x10000000162E42FF1) >> 64;
+        }
+        if x & 0x100000000 > 0 {
+            result = (result * 0x100000000B17217F8) >> 64;
+        }
+    }
+
+    if x & 0xFF00000000 > 0 {
+        if x & 0x80000000 > 0 {
+            result = (result * 0x10000000058B90BFC) >> 64;
+        }
+        if x & 0x40000000 > 0 {
+            result = (result * 0x1000000002C5C85FE) >> 64;
+        }
+        if x & 0x20000000 > 0 {
+            result = (result * 0x100000000162E42FF) >> 64;
+        }
+        if x & 0x10000000 > 0 {
+            result = (result * 0x1000000000B17217F) >> 64;
+        }
+        if x & 0x8000000 > 0 {
+            result = (result * 0x100000000058B90C0) >> 64;
+        }
+        if x & 0x4000000 > 0 {
+            result = (result * 0x10000000002C5C860) >> 64;
+        }
+        if x & 0x2000000 > 0 {
+            result = (result * 0x1000000000162E430) >> 64;
+        }
+        if x & 0x1000000 > 0 {
+            result = (result * 0x10000000000B17218) >> 64;
+        }
+    }
+
+    if x & 0xFF0000 > 0 {
+        if x & 0x800000 > 0 {
+            result = (result * 0x1000000000058B90C) >> 64;
+        }
+        if x & 0x400000 > 0 {
+            result = (result * 0x100000000002C5C86) >> 64;
+        }
+        if x & 0x200000 > 0 {
+            result = (result * 0x10000000000162E43) >> 64;
+        }
+        if x & 0x100000 > 0 {
+            result = result * 0x100000000000B1721 >> 64;
+        }
+        if x & 0x80000 > 0 {
+            result = (result * 0x10000000000058B91) >> 64;
+        }
+        if x & 0x40000 > 0 {
+            result = (result * 0x1000000000002C5C8) >> 64;
+        }
+        if x & 0x20000 > 0 {
+            result = (result * 0x100000000000162E4) >> 64;
+        }
+        if x & 0x10000 > 0 {
+            result = (result * 0x1000000000000B172) >> 64;
+        }
+    }
+
+    if x & 0xFF00 > 0 {
+        if x & 0x8000 > 0 {
+            result = (result * 0x100000000000058B9) >> 64;
+        }
+        if x & 0x4000 > 0 {
+            result = (result * 0x10000000000002C5D) >> 64;
+        }
+        if x & 0x2000 > 0 {
+            result = (result * 0x1000000000000162E) >> 64;
+        }
+        if x & 0x1000 > 0 {
+            result = (result * 0x10000000000000B17) >> 64;
+        }
+        if x & 0x800 > 0 {
+            result = (result * 0x1000000000000058C) >> 64;
+        }
+        if x & 0x400 > 0 {
+            result = (result * 0x100000000000002C6) >> 64;
+        }
+        if x & 0x200 > 0 {
+            result = (result * 0x10000000000000163) >> 64;
+        }
+        if x & 0x100 > 0 {
+            result = (result * 0x100000000000000B1) >> 64;
+        }
+    }
+
+    if x & 0xFF > 0 {
+        if x & 0x80 > 0 {
+            result = (result * 0x10000000000000059) >> 64;
+        }
+        if x & 0x40 > 0 {
+            result = (result * 0x1000000000000002C) >> 64;
+        }
+        if x & 0x20 > 0 {
+            result = (result * 0x10000000000000016) >> 64;
+        }
+        if x & 0x10 > 0 {
+            result = (result * 0x1000000000000000B) >> 64;
+        }
+        if x & 0x8 > 0 {
+            result = (result * 0x10000000000000006) >> 64;
+        }
+        if x & 0x4 > 0 {
+            result = (result * 0x10000000000000003) >> 64;
+        }
+        if x & 0x2 > 0 {
+            result = (result * 0x10000000000000001) >> 64;
+        }
+        if x & 0x1 > 0 {
+            result = (result * 0x10000000000000001) >> 64;
+        }
+    }
+
+    // We're doing two things at the same time:
+    //
+    //   1. Multiply the result by 2^n + 1, where "2^n" is the integer part and the one is added to account for
+    //      the fact that we initially set the result to 0.5. This is accomplished by subtracting from 191
+    //      rather than 192.
+    //   2. Convert the result to the unsigned 60.18-decimal fixed-point format.
+    //
+    // This works because 2^(191-ip) = 2^ip / 2^191, where "ip" is the integer part "2^n".
+    result *= UNIT;
     result >>= U256::new(191u128) - (x >> 64);
     result
 }
@@ -399,9 +429,9 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     let mut prod1: U256; // Most significant 256 bits of the product
     let result: U256;
 
-    let mm = mulmod(x, y, U256::ZERO.not());
-    prod0 = mul(x, y);
-    prod1 = u_sub(u_sub(mm, prod0), lt(mm, prod0));
+    let mm = Asm::mulmod(x, y, U256::ZERO.not())?;
+    prod0 = Asm::mul(x, y)?;
+    prod1 = Asm::u_sub(Asm::u_sub(mm, prod0)?, Asm::lt(mm, prod0))?;
 
     // Handle non-overflow cases, 256 by 256 division.
     if prod1 == 0 {
@@ -425,25 +455,28 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     ///////////////////////////////////////////////
 
     // Make division exact by u_subtracting the remainder from [prod1 prod0].
-    // Compute remainder using mulmod.
-    let remainder = mulmod(x, y, denominator);
+    // Compute remainder usingAsm::mulmod.
+    let remainder = Asm::mulmod(x, y, denominator)?;
 
     // u_subtract 256 bit number from 512 bit number.
-    prod1 = u_sub(prod1, gt(remainder, prod0));
-    prod0 = u_sub(prod0, remainder);
+    prod1 = Asm::u_sub(prod1, Asm::gt(remainder, prod0))?;
+    prod0 = Asm::u_sub(prod0, remainder)?;
 
     // Factor powers of two out of denominator and compute largest power of two divisor of denominator. Always >= 1.
     // See https://cs.stackexchange.com/q/138556/92363.
     // Does not overflow because the denominator cannot be zero at this stage in the function.
     let mut lpotdod = denominator & (denominator.not() + 1);
     // Divide denominator by lpotdod.
-    denominator = div(denominator, lpotdod);
+    denominator = Asm::div(denominator, lpotdod);
 
     // Divide [prod1 prod0] by lpotdod.
-    prod0 = div(prod0, lpotdod);
+    prod0 = Asm::div(prod0, lpotdod);
 
     // Flip lpotdod such that it is 2^256 / lpotdod. If lpotdod is zero, then it becomes one.
-    lpotdod = add(div(u_sub(U256::ZERO, lpotdod), lpotdod), U256::ONE);
+    lpotdod = Asm::add(
+        Asm::div(Asm::u_sub(U256::ZERO, lpotdod)?, lpotdod),
+        U256::ONE,
+    )?;
 
     // Shift in bits from prod1 into prod0.
     prod0 |= prod1 * lpotdod;
@@ -473,7 +506,7 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
 /// @notice Calculates floor(x*y÷1e18) with full precision.
 ///
 /// @dev Variant of "mulDiv" with constant folding, i.e. in which the denominator is always 1e18. Before returning the
-/// final result, we add 1 if (x * y) % SCALE >= HALF_SCALE. Without this, 6.6e-19 would be truncated to 0 instead of
+/// final result, we add 1 if (x * y) % UNIT >= HALF_UNIT. Without this, 6.6e-19 would be truncated to 0 instead of
 /// being rounded to 1e-18.  See "Listing 6" and text above it at https://accu.org/index.php/journals/1717.
 ///
 /// Requirements:
@@ -482,48 +515,43 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
 /// Caveats:
 /// - The body is purposely left uncommented; see the NatSpec comments in "PRBMath.mulDiv" to understand how this works.
 /// - It is assumed that the result can never be type(uint256).max when x and y solve the following two equations:
-///     1. x * y = type(uint256).max * SCALE
-///     2. (x * y) % SCALE >= SCALE / 2
+///     1. x * y = type(uint256).max * UNIT
+///     2. (x * y) % UNIT >= UNIT / 2
 ///
 /// @param x The multiplicand as an unsigned 60.18-decimal fixed-point number.
 /// @param y The multiplier as an unsigned 60.18-decimal fixed-point number.
 /// @return result The result as an unsigned 60.18-decimal fixed-point number.
-pub fn muldiv_fp(x: U256, y: U256) -> StdResult<U256> {
-    let mm = mulmod(x, y, !U256::ZERO);
-    let prod0 = mul(x, y);
-    let prod1 = u_sub(u_sub(mm, prod0), lt(mm, prod0));
+pub fn muldiv18(x: U256, y: U256) -> StdResult<U256> {
+    let mm = Asm::mulmod(x, y, !U256::ZERO)?;
+    let prod0 = Asm::mul(x, y)?;
+    let prod1 = Asm::u_sub(Asm::u_sub(mm, prod0)?, Asm::lt(mm, prod0))?;
 
-    if prod1 >= SCALE {
+    if prod1 >= UNIT {
         return Err(StdError::generic_err(format!(
             "PRBMath__MulDivFixedPointOverflow {}",
             prod1
         )));
     }
 
-    let remainder = mulmod(x, y, SCALE);
-    let round_up_unit = gt(remainder, U256::new(499999999999999999u128));
+    let remainder = Asm::mulmod(x, y, UNIT)?;
 
     if prod1 == 0 {
-        let result = (prod0 / SCALE) + round_up_unit;
-        return Ok(result);
+        return Ok(prod0 / UNIT);
     }
 
-    Ok(bankers_round(
-        add(
-            mul(
-                or(
-                    div(u_sub(prod0, remainder), SCALE_LPOTD),
-                    mul(
-                        u_sub(prod1, gt(remainder, prod0)),
-                        add(div(u_sub(U256::ZERO, SCALE_LPOTD), SCALE_LPOTD), U256::ONE),
-                    ),
-                ),
-                SCALE_INVERSE,
-            ),
-            round_up_unit,
+    Ok(Asm::mul(
+        Asm::or(
+            Asm::div(Asm::u_sub(prod0, remainder)?, UNIT_LPOTD),
+            Asm::mul(
+                Asm::u_sub(prod1, Asm::gt(remainder, prod0))?,
+                Asm::add(
+                    Asm::div(Asm::u_sub(U256::ZERO, UNIT_LPOTD)?, UNIT_LPOTD),
+                    U256::ONE,
+                )?,
+            )?,
         ),
-        1,
-    ))
+        UNIT_INVERSE,
+    )?)
 }
 
 /// Performs bankers rounding using the nth digit.
@@ -580,7 +608,7 @@ mod test {
             "78156646155174841979727994598816262306175212592076161876661508869554232690281",
         )
         .unwrap();
-        assert_eq!(SCALE_INVERSE, int2);
+        assert_eq!(UNIT_INVERSE, int2);
     }
 
     #[test]
