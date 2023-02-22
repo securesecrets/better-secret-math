@@ -1,8 +1,9 @@
 //! Common mathematical functions used in ud60x18 and sd59x18. Note that this shared library does not always assume the unsigned 60.18-decimal fixed-point representation. When it does not, it is explicitly mentioned in the documentation.
 //! Forks methods from here - https://github.com/paulrberg/prb-math/blob/main/contracts/PRBMath.sol.
 pub use super::tens::exp10;
-use crate::{asm::Asm, ud60x18::constants::*};
+use crate::{asm::{Asm, u256_to_u512, u512_to_u256}, ud60x18::constants::*};
 use cosmwasm_std::{DivideByZeroError, OverflowError, OverflowOperation, StdError, StdResult};
+use primitive_types::U512;
 use std::ops::Not;
 
 use ethnum::U256;
@@ -114,13 +115,12 @@ pub fn msb(mut x: U256) -> U256 {
 ///
 /// Caveats:
 /// - This function does not work with fixed-point numbers.
-/// - Applies bankers rounding on the last place to smooth out errors over time.
 ///
 /// @param x The multiplicand as an uint256.
 /// @param y The multiplier as an uint256.
 /// @param denominator The divisor as an uint256.
 /// @return result The result as an uint256.
-pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
+pub fn muldiv(x: U256, y: U256, denominator: U256) -> StdResult<U256> {
     if denominator == 0 {
         return Err(StdError::DivideByZero {
             source: DivideByZeroError {
@@ -132,8 +132,8 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     // 512-bit multiply [prod1 prod0] = x * y. Compute the product mod 2^256 and mod 2^256 - 1, then use
     // use the Chinese Remainder Theorem to reconstruct the 512 bit result. The result is stored in two 256
     // variables such that product = prod1 * 2^256 + prod0.
-    let mut prod0: U256; // Least significant 256 bits of the product
-    let mut prod1: U256; // Most significant 256 bits of the product
+    let prod0: U256; // Least significant 256 bits of the product
+    let prod1: U256; // Most significant 256 bits of the product
     let result: U256;
 
     let mm = Asm::mulmod(x, y, U256::ZERO.not());
@@ -161,52 +161,12 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     // 512 by 256 division.
     ///////////////////////////////////////////////
 
-    // Make division exact by u_subtracting the remainder from [prod1 prod0].
-    // Compute remainder usingAsm::mulmod.
-    let remainder = Asm::mulmod(x, y, denominator);
-
-    // u_subtract 256 bit number from 512 bit number.
-    prod1 = Asm::u_sub(prod1, Asm::gt(remainder, prod0));
-    prod0 = Asm::u_sub(prod0, remainder);
-
-    // Factor powers of two out of denominator and compute largest power of two divisor of denominator. Always >= 1.
-    // See https://cs.stackexchange.com/q/138556/92363.
-    // Does not overflow because the denominator cannot be zero at this stage in the function.
-    let mut lpotdod = denominator & (denominator.not() + 1);
-    // Divide denominator by lpotdod.
-    denominator = Asm::div(denominator, lpotdod);
-
-    // Divide [prod1 prod0] by lpotdod.
-    prod0 = Asm::div(prod0, lpotdod);
-
-    // Flip lpotdod such that it is 2^256 / lpotdod. If lpotdod is zero, then it becomes one.
-    lpotdod = Asm::add(
-        Asm::div(Asm::u_sub(U256::ZERO, lpotdod), lpotdod),
-        U256::ONE,
-    );
-
-    // Shift in bits from prod1 into prod0.
-    prod0 |= prod1 * lpotdod;
-
-    // Invert denominator mod 2^256. Now that denominator is an odd number, it has an inverse modulo 2^256 such
-    // that denominator * inv = 1 mod 2^256. Compute the inverse by starting with a seed that is correct for
-    // four bits. That is, denominator * inv = 1 mod 2^4.
-    let mut inverse = (3 * denominator) ^ 2;
-
-    // Use the Newton-Raphson iteration to improve the precision. Thanks to Hensel's lifting lemma, this also works
-    // in modular arithmetic, doubling the correct bits in each step.
-    inverse *= 2 - denominator * inverse; // inverse mod 2^8
-    inverse *= 2 - denominator * inverse; // inverse mod 2^16
-    inverse *= 2 - denominator * inverse; // inverse mod 2^32
-    inverse *= 2 - denominator * inverse; // inverse mod 2^64
-    inverse *= 2 - denominator * inverse; // inverse mod 2^128
-    inverse *= 2 - denominator * inverse; // inverse mod 2^256
-
-    // Because the division is now exact we can divide by multiplying with the modular inverse of denominator.
-    // This will give us the correct result modulo 2^256. Since the preconditions guarantee that the outcome is
-    // less than 2^256, this is the final result. We don't need to compute the high bits of the result and prod1
-    // is no longer required.
-    result = prod0 * inverse;
+    let lo = prod0.to_le_bytes();
+    let hi = prod1.to_le_bytes();
+    let lo_hi = [lo, hi].concat();
+    let xy = U512::from_little_endian(&lo_hi);
+    let denominator = u256_to_u512(&denominator);
+    result = u512_to_u256(&xy / denominator);
     Ok(result)
 }
 
@@ -588,7 +548,6 @@ pub fn sqrt(x: U256) -> U256 {
 #[cfg(test)]
 mod test {
     use rstest::*;
-
     use super::*;
 
     #[rstest]
@@ -638,6 +597,7 @@ mod test {
 
     #[rstest]
     #[case("19318389123", "1319320194941", "219031831291", "116362725698")]
+    #[case(U256::MAX, U256::MAX, U256::MAX, U256::MAX)]
     fn test_muldiv(#[case] x: U256, #[case] y: U256, #[case] denom: U256, #[case] expected: U256) {
         assert_eq!(muldiv(x, y, denom).unwrap(), expected);
     }
