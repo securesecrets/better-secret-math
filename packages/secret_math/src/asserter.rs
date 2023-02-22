@@ -93,9 +93,10 @@ impl MathAsserter {
     pub fn within_deviation(
         expected: impl Into<U256> + Copy,
         actual: impl Into<U256> + Copy,
-        deviation: Decimal256,
+        deviation: impl Into<U256> + Copy,
     ) {
         let actual_deviation = Self::get_deviation(expected, actual);
+        let deviation: Decimal256 = deviation.into().into();
         assert!(actual_deviation <= deviation);
     }
 }
