@@ -1,20 +1,12 @@
 //! Common mathematical functions used in ud60x18 and sd59x18. Note that this shared library does not always assume the unsigned 60.18-decimal fixed-point representation. When it does not, it is explicitly mentioned in the documentation.
 //! Forks methods from here - https://github.com/paulrberg/prb-math/blob/main/contracts/PRBMath.sol.
 pub use super::tens::exp10;
-use crate::asm::Asm;
+use crate::{asm::Asm, ud60x18::constants::*,
+};
 use cosmwasm_std::{OverflowError, OverflowOperation, StdError, StdResult};
 use std::ops::Not;
 
 use ethnum::U256;
-const UNIT: U256 = U256::new(1_000_000_000_000_000_000u128);
-/// Largest power of two divisor of UNIT.
-const UNIT_LPOTD: U256 = U256::new(262144u128);
-
-/// UNIT inverted mod 2^256.
-const UNIT_INVERSE: U256 = U256::from_words(
-    229681740086561209518615317264092320238,
-    298919117238935307856972083127780443753,
-);
 
 /// Finds whether or not some Uint256 is odd.
 pub fn is_odd(x: U256) -> bool {
@@ -61,81 +53,235 @@ pub fn abs_diff(x: U256, y: U256) -> U256 {
         y - x
     }
 }
+/// Performs bankers rounding using the nth digit.
+pub fn bankers_round(x: U256, digit: u8) -> U256 {
+    let n = nth_digit(x, digit);
+    let round_up = match n {
+        5 => {
+            let next_digit = nth_digit(x, digit + 1);
+            // Checks if the next digit is the nearest even integer.
+            next_digit % 2 != 0
+        }
+        _ => n > 5,
+    };
+    let precision = exp10(digit as u16);
 
-/// Calculates the square root of x, rounding down.
-/// Uses the Babylonian method https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method.
+    (x + if round_up { precision } else { U256::ZERO }) / precision * precision
+}
+
+/// Where x is a positive integer. Supports up to 32 digits.
+pub fn nth_digit(x: U256, digit: u8) -> u8 {
+    ((x / exp10((digit - 1) as u16)) % 10).as_u8()
+}
+
+/// @notice Finds the zero-based index of the first one in the binary representation of x.
+/// @dev See the note on msb in the "Find First Set" Wikipedia article https://en.wikipedia.org/wiki/Find_first_set
+/// @param x The uint256 number for which to find the index of the most significant bit.
+/// @return msb The index of the most significant bit as an uint256.
+pub fn most_significant_bit(mut x: U256) -> U256 {
+    let mut msb = U256::ZERO;
+    let two = U256::from(2u128);
+
+    if x >= two.pow(128) {
+        x >>= 128;
+        msb += 128;
+    }
+    if x >= two.pow(64) {
+        x >>= 64;
+        msb += 64;
+    }
+    if x >= two.pow(32) {
+        x >>= 32;
+        msb += 32;
+    }
+    if x >= two.pow(16) {
+        x >>= 16;
+        msb += 16;
+    }
+    if x >= two.pow(8) {
+        x >>= 8;
+        msb += 8;
+    }
+    if x >= two.pow(4) {
+        x >>= 4;
+        msb += 4;
+    }
+    if x >= two.pow(2) {
+        x >>= 2;
+        msb += 2;
+    }
+    if x >= two.pow(1) {
+        // No need to shift x any more.
+        msb += 1;
+    }
+    msb
+}
+
+/// @notice Calculates floor(x*y÷denominator) with full precision.
+///
+/// @dev Credit to Remco Bloemen under MIT license https://xn--2-umb.com/21/muldiv.
+///
+/// Requirements:
+/// - The denominator cannot be zero.
+/// - The result must fit within uint256.
 ///
 /// Caveats:
 /// - This function does not work with fixed-point numbers.
+/// - Applies bankers rounding on the last place to smooth out errors over time.
 ///
-/// @param x The uint256 number for which to calculate the square root.
+/// @param x The multiplicand as an uint256.
+/// @param y The multiplier as an uint256.
+/// @param denominator The divisor as an uint256.
 /// @return result The result as an uint256.
-pub fn sqrt(x: U256) -> U256 {
-    if x == 0 {
-        return U256::ZERO;
+pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
+    // 512-bit multiply [prod1 prod0] = x * y. Compute the product mod 2^256 and mod 2^256 - 1, then use
+    // use the Chinese Remainder Theorem to reconstruct the 512 bit result. The result is stored in two 256
+    // variables such that product = prod1 * 2^256 + prod0.
+    let mut prod0: U256; // Least significant 256 bits of the product
+    let mut prod1: U256; // Most significant 256 bits of the product
+    let result: U256;
+
+    let mm = Asm::mulmod(x, y, U256::ZERO.not());
+    prod0 = Asm::mul(x, y);
+    prod1 = Asm::u_sub(Asm::u_sub(mm, prod0), Asm::lt(mm, prod0));
+
+    // Handle non-overflow cases, 256 by 256 division.
+    if prod1 == 0 {
+        result = prod0 / denominator;
+        return Ok(result);
     }
 
-    // Set the initial guess to the least power of two that is greater than or equal to sqrt(x).
-    let mut x_aux = x;
-    let mut result = U256::ONE;
-    // Can't panic.
-    if x_aux >= U256::from_str_hex("0x100000000000000000000000000000000").unwrap() {
-        x_aux >>= 128;
-        result <<= 64;
-    }
-    if x_aux >= 0x10000000000000000 {
-        x_aux >>= 64;
-        result <<= 32;
-    }
-    if x_aux >= 0x100000000 {
-        x_aux >>= 32;
-        result <<= 16;
-    }
-    if x_aux >= 0x10000 {
-        x_aux >>= 16;
-        result <<= 8;
-    }
-    if x_aux >= 0x100 {
-        x_aux >>= 8;
-        result <<= 4;
-    }
-    if x_aux >= 0x10 {
-        x_aux >>= 4;
-        result <<= 2;
-    }
-    if x_aux >= 0x4 {
-        result <<= 1;
+    // Make sure the result is less than 2^256. Also prevents denominator == 0.
+    if prod1 >= denominator {
+        return Err(StdError::Overflow {
+            source: OverflowError {
+                operation: OverflowOperation::Mul,
+                operand1: prod1.to_string(),
+                operand2: denominator.to_string(),
+            },
+        });
     }
 
-    // The operations can never overflow because the result is max 2^127 when it enters this block.
-    result = result + x / result >> 1;
-    result = result + x / result >> 1;
-    result = result + x / result >> 1;
-    result = result + x / result >> 1;
-    result = result + x / result >> 1;
-    result = result + x / result >> 1;
-    result = result + x / result >> 1; // Seven iterations should be enough
-    let rounded_down_result = x / result;
-    let result = if result <= rounded_down_result {
-        rounded_down_result
-    } else {
-        result
-    };
-    result
+    ///////////////////////////////////////////////
+    // 512 by 256 division.
+    ///////////////////////////////////////////////
+
+    // Make division exact by u_subtracting the remainder from [prod1 prod0].
+    // Compute remainder usingAsm::mulmod.
+    let remainder = Asm::mulmod(x, y, denominator);
+
+    // u_subtract 256 bit number from 512 bit number.
+    prod1 = Asm::u_sub(prod1, Asm::gt(remainder, prod0));
+    prod0 = Asm::u_sub(prod0, remainder);
+
+    // Factor powers of two out of denominator and compute largest power of two divisor of denominator. Always >= 1.
+    // See https://cs.stackexchange.com/q/138556/92363.
+    // Does not overflow because the denominator cannot be zero at this stage in the function.
+    let mut lpotdod = denominator & (denominator.not() + 1);
+    // Divide denominator by lpotdod.
+    denominator = Asm::div(denominator, lpotdod);
+
+    // Divide [prod1 prod0] by lpotdod.
+    prod0 = Asm::div(prod0, lpotdod);
+
+    // Flip lpotdod such that it is 2^256 / lpotdod. If lpotdod is zero, then it becomes one.
+    lpotdod = Asm::add(
+        Asm::div(Asm::u_sub(U256::ZERO, lpotdod), lpotdod),
+        U256::ONE,
+    );
+
+    // Shift in bits from prod1 into prod0.
+    prod0 |= prod1 * lpotdod;
+
+    // Invert denominator mod 2^256. Now that denominator is an odd number, it has an inverse modulo 2^256 such
+    // that denominator * inv = 1 mod 2^256. Compute the inverse by starting with a seed that is correct for
+    // four bits. That is, denominator * inv = 1 mod 2^4.
+    let mut inverse = (3 * denominator) ^ 2;
+
+    // Use the Newton-Raphson iteration to improve the precision. Thanks to Hensel's lifting lemma, this also works
+    // in modular arithmetic, doubling the correct bits in each step.
+    inverse *= 2 - denominator * inverse; // inverse mod 2^8
+    inverse *= 2 - denominator * inverse; // inverse mod 2^16
+    inverse *= 2 - denominator * inverse; // inverse mod 2^32
+    inverse *= 2 - denominator * inverse; // inverse mod 2^64
+    inverse *= 2 - denominator * inverse; // inverse mod 2^128
+    inverse *= 2 - denominator * inverse; // inverse mod 2^256
+
+    // Because the division is now exact we can divide by multiplying with the modular inverse of denominator.
+    // This will give us the correct result modulo 2^256. Since the preconditions guarantee that the outcome is
+    // less than 2^256, this is the final result. We don't need to compute the high bits of the result and prod1
+    // is no longer required.
+    result = prod0 * inverse;
+    Ok(bankers_round(result, 1))
+}
+
+
+/// @notice Calculates floor(x*y÷1e18) with full precision.
+///
+/// @dev Variant of "mulDiv" with constant folding, i.e. in which the denominator is always 1e18. Before returning the
+/// final result, we add 1 if (x * y) % UNIT >= HALF_UNIT. Without this, 6.6e-19 would be truncated to 0 instead of
+/// being rounded to 1e-18.  See "Listing 6" and text above it at https://accu.org/index.php/journals/1717.
+///
+/// Requirements:
+/// - The result must fit within uint256.
+///
+/// Caveats:
+/// - The body is purposely left uncommented; see the NatSpec comments in "PRBMath.mulDiv" to understand how this works.
+/// - It is assumed that the result can never be type(uint256).max when x and y solve the following two equations:
+///     1. x * y = type(uint256).max * UNIT
+///     2. (x * y) % UNIT >= UNIT / 2
+///
+/// @param x The multiplicand as an unsigned 60.18-decimal fixed-point number.
+/// @param y The multiplier as an unsigned 60.18-decimal fixed-point number.
+/// @return result The result as an unsigned 60.18-decimal fixed-point number.
+pub fn muldiv18(x: U256, y: U256) -> StdResult<U256> {
+
+    let mm = Asm::mulmod(x, y, !U256::ZERO);
+    let prod0 = Asm::mul(x, y);
+    let prod1 = Asm::u_sub(Asm::u_sub(mm, prod0), Asm::lt(mm, prod0));
+
+    if prod1 >= UNIT {
+        return Err(StdError::generic_err(format!(
+            "PRBMath__MulDiv18Overflow {}",
+            prod1
+        )));
+    }
+
+    let remainder = Asm::mulmod(x, y, UNIT);
+
+    if prod1 == 0 {
+        return Ok(prod0 / UNIT);
+    }
+
+    Ok(Asm::mul(
+        Asm::or(
+            Asm::div(Asm::u_sub(prod0, remainder), UNIT_LPOTD),
+            Asm::mul(
+                Asm::u_sub(prod1, Asm::gt(remainder, prod0)),
+                Asm::add(
+                    Asm::div(Asm::u_sub(U256::ZERO, UNIT_LPOTD), UNIT_LPOTD),
+                    U256::ONE,
+                ),
+            ),
+        ),
+        UNIT_INVERSE,
+    ))
 }
 
 /// Calculates the binary exponent of x (2^x) using the binary fraction method.
-///
 /// Has to use 192.64-bit fixed-point numbers so x is the exponent as an unsigned 192.64-bit fixed-point number.
-///
+/// See https://ethereum.stackexchange.com/a/96594/24693.
 /// The result is an unsigned 60.18-decimal fixed-point number.
 pub fn exp2(x: U256) -> U256 {
+    // Start from 0.5 in the 192.64-bit fixed-point format.
     // Guaranteed not to panic.
     let mut result =
         U256::from_str_hex("0x800000000000000000000000000000000000000000000000").unwrap();
 
+    // Multiply the result by root(2, 2^-i) when the bit at position i is 1. None of the intermediary results overflows
+    // because the initial result is 2^191 and all magic factors are less than 2^65.
     if x & 0xFF00000000000000 > 0 {
-        if x & 0x8000000000000000u128 > 0 {
+        if x & 0x8000000000000000 > 0 {
             result = (result * 0x16A09E667F3BCC909) >> 64;
         }
         if x & 0x4000000000000000 > 0 {
@@ -187,6 +333,7 @@ pub fn exp2(x: U256) -> U256 {
             result = (result * 0x10000B17255775C04) >> 64;
         }
     }
+
     if x & 0xFF0000000000 > 0 {
         if x & 0x800000000000 > 0 {
             result = (result * 0x1000058B91B5BC9AE) >> 64;
@@ -279,7 +426,7 @@ pub fn exp2(x: U256) -> U256 {
             result = (result * 0x10000000000162E43) >> 64;
         }
         if x & 0x100000 > 0 {
-            result = result * 0x100000000000B1721 >> 64;
+            result = (result * 0x100000000000B1721) >> 64;
         }
         if x & 0x80000 > 0 {
             result = (result * 0x10000000000058B91) >> 64;
@@ -362,218 +509,89 @@ pub fn exp2(x: U256) -> U256 {
     result
 }
 
-/// @notice Finds the zero-based index of the first one in the binary representation of x.
-/// @dev See the note on msb in the "Find First Set" Wikipedia article https://en.wikipedia.org/wiki/Find_first_set
-/// @param x The uint256 number for which to find the index of the most significant bit.
-/// @return msb The index of the most significant bit as an uint256.
-pub(crate) fn most_significant_bit(mut x: U256) -> U256 {
-    let mut msb = U256::ZERO;
-    let two = U256::from(2u128);
-
-    if x >= two.pow(128) {
-        x >>= 128;
-        msb += 128;
-    }
-    if x >= two.pow(64) {
-        x >>= 64;
-        msb += 64;
-    }
-    if x >= two.pow(32) {
-        x >>= 32;
-        msb += 32;
-    }
-    if x >= two.pow(16) {
-        x >>= 16;
-        msb += 16;
-    }
-    if x >= two.pow(8) {
-        x >>= 8;
-        msb += 8;
-    }
-    if x >= two.pow(4) {
-        x >>= 4;
-        msb += 4;
-    }
-    if x >= two.pow(2) {
-        x >>= 2;
-        msb += 2;
-    }
-    if x >= two.pow(1) {
-        // No need to shift x any more.
-        msb += 1;
-    }
-    msb
-}
-
-/// @notice Calculates floor(x*y÷denominator) with full precision.
-///
-/// @dev Credit to Remco Bloemen under MIT license https://xn--2-umb.com/21/muldiv.
-///
-/// Requirements:
-/// - The denominator cannot be zero.
-/// - The result must fit within uint256.
+/// Calculates the square root of x, rounding down.
+/// Uses the Babylonian method https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method.
 ///
 /// Caveats:
 /// - This function does not work with fixed-point numbers.
-/// - Applies bankers rounding on the last place to smooth out errors over time.
 ///
-/// @param x The multiplicand as an uint256.
-/// @param y The multiplier as an uint256.
-/// @param denominator The divisor as an uint256.
+/// @param x The uint256 number for which to calculate the square root.
 /// @return result The result as an uint256.
-pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
-    // 512-bit multiply [prod1 prod0] = x * y. Compute the product mod 2^256 and mod 2^256 - 1, then use
-    // use the Chinese Remainder Theorem to reconstruct the 512 bit result. The result is stored in two 256
-    // variables such that product = prod1 * 2^256 + prod0.
-    let mut prod0: U256; // Least significant 256 bits of the product
-    let mut prod1: U256; // Most significant 256 bits of the product
-    let result: U256;
-
-    let mm = Asm::mulmod(x, y, U256::ZERO.not())?;
-    prod0 = Asm::mul(x, y)?;
-    prod1 = Asm::u_sub(Asm::u_sub(mm, prod0)?, Asm::lt(mm, prod0))?;
-
-    // Handle non-overflow cases, 256 by 256 division.
-    if prod1 == 0 {
-        result = prod0 / denominator;
-        return Ok(result);
+pub fn sqrt(x: U256) -> U256 {
+    if x == 0 {
+        return U256::ZERO;
     }
 
-    // Make sure the result is less than 2^256. Also prevents denominator == 0.
-    if prod1 >= denominator {
-        return Err(StdError::Overflow {
-            source: OverflowError {
-                operation: OverflowOperation::Mul,
-                operand1: prod1.to_string(),
-                operand2: denominator.to_string(),
-            },
-        });
+    // For our first guess, we get the biggest power of 2 which is smaller than the square root of x.
+    //
+    // We know that the "msb" (most significant bit) of x is a power of 2 such that we have:
+    //
+    // $$
+    // msb(x) <= x <= 2*msb(x)$
+    // $$
+    //
+    // We write $msb(x)$ as $2^k$ and we get:
+    //
+    // $$
+    // k = log_2(x)
+    // $$
+    //
+    // Thus we can write the initial inequality as:
+    //
+    // $$
+    // 2^{log_2(x)} <= x <= 2*2^{log_2(x)+1} \\
+    // sqrt(2^k) <= sqrt(x) < sqrt(2^{k+1}) \\
+    // 2^{k/2} <= sqrt(x) < 2^{(k+1)/2} <= 2^{(k/2)+1}
+    // $$
+    //
+    // Consequently, $2^{log_2(x) /2}` is a good first approximation of sqrt(x) with at least one correct bit.
+    let mut x_aux = x;
+    let mut result = U256::ONE;
+    // Can't panic.
+    if x_aux >= TWO_TO_128 {
+        x_aux >>= 128;
+        result <<= 64;
+    }
+    if x_aux >= 0x10000000000000000 {
+        x_aux >>= 64;
+        result <<= 32;
+    }
+    if x_aux >= 0x100000000 {
+        x_aux >>= 32;
+        result <<= 16;
+    }
+    if x_aux >= 0x10000 {
+        x_aux >>= 16;
+        result <<= 8;
+    }
+    if x_aux >= 0x100 {
+        x_aux >>= 8;
+        result <<= 4;
+    }
+    if x_aux >= 0x10 {
+        x_aux >>= 4;
+        result <<= 2;
+    }
+    if x_aux >= 0x4 {
+        result <<= 1;
     }
 
-    ///////////////////////////////////////////////
-    // 512 by 256 division.
-    ///////////////////////////////////////////////
-
-    // Make division exact by u_subtracting the remainder from [prod1 prod0].
-    // Compute remainder usingAsm::mulmod.
-    let remainder = Asm::mulmod(x, y, denominator)?;
-
-    // u_subtract 256 bit number from 512 bit number.
-    prod1 = Asm::u_sub(prod1, Asm::gt(remainder, prod0))?;
-    prod0 = Asm::u_sub(prod0, remainder)?;
-
-    // Factor powers of two out of denominator and compute largest power of two divisor of denominator. Always >= 1.
-    // See https://cs.stackexchange.com/q/138556/92363.
-    // Does not overflow because the denominator cannot be zero at this stage in the function.
-    let mut lpotdod = denominator & (denominator.not() + 1);
-    // Divide denominator by lpotdod.
-    denominator = Asm::div(denominator, lpotdod);
-
-    // Divide [prod1 prod0] by lpotdod.
-    prod0 = Asm::div(prod0, lpotdod);
-
-    // Flip lpotdod such that it is 2^256 / lpotdod. If lpotdod is zero, then it becomes one.
-    lpotdod = Asm::add(
-        Asm::div(Asm::u_sub(U256::ZERO, lpotdod)?, lpotdod),
-        U256::ONE,
-    )?;
-
-    // Shift in bits from prod1 into prod0.
-    prod0 |= prod1 * lpotdod;
-
-    // Invert denominator mod 2^256. Now that denominator is an odd number, it has an inverse modulo 2^256 such
-    // that denominator * inv = 1 mod 2^256. Compute the inverse by starting with a seed that is correct for
-    // four bits. That is, denominator * inv = 1 mod 2^4.
-    let mut inverse = (3 * denominator) ^ 2;
-
-    // Use the Newton-Raphson iteration to improve the precision. Thanks to Hensel's lifting lemma, this also works
-    // in modular arithmetic, doubling the correct bits in each step.
-    inverse *= 2 - denominator * inverse; // inverse mod 2^8
-    inverse *= 2 - denominator * inverse; // inverse mod 2^16
-    inverse *= 2 - denominator * inverse; // inverse mod 2^32
-    inverse *= 2 - denominator * inverse; // inverse mod 2^64
-    inverse *= 2 - denominator * inverse; // inverse mod 2^128
-    inverse *= 2 - denominator * inverse; // inverse mod 2^256
-
-    // Because the division is now exact we can divide by multiplying with the modular inverse of denominator.
-    // This will give us the correct result modulo 2^256. Since the preconditions guarantee that the outcome is
-    // less than 2^256, this is the final result. We don't need to compute the high bits of the result and prod1
-    // is no longer required.
-    result = prod0 * inverse;
-    Ok(bankers_round(result, 1))
-}
-
-/// @notice Calculates floor(x*y÷1e18) with full precision.
-///
-/// @dev Variant of "mulDiv" with constant folding, i.e. in which the denominator is always 1e18. Before returning the
-/// final result, we add 1 if (x * y) % UNIT >= HALF_UNIT. Without this, 6.6e-19 would be truncated to 0 instead of
-/// being rounded to 1e-18.  See "Listing 6" and text above it at https://accu.org/index.php/journals/1717.
-///
-/// Requirements:
-/// - The result must fit within uint256.
-///
-/// Caveats:
-/// - The body is purposely left uncommented; see the NatSpec comments in "PRBMath.mulDiv" to understand how this works.
-/// - It is assumed that the result can never be type(uint256).max when x and y solve the following two equations:
-///     1. x * y = type(uint256).max * UNIT
-///     2. (x * y) % UNIT >= UNIT / 2
-///
-/// @param x The multiplicand as an unsigned 60.18-decimal fixed-point number.
-/// @param y The multiplier as an unsigned 60.18-decimal fixed-point number.
-/// @return result The result as an unsigned 60.18-decimal fixed-point number.
-pub fn muldiv18(x: U256, y: U256) -> StdResult<U256> {
-    let mm = Asm::mulmod(x, y, !U256::ZERO)?;
-    let prod0 = Asm::mul(x, y)?;
-    let prod1 = Asm::u_sub(Asm::u_sub(mm, prod0)?, Asm::lt(mm, prod0))?;
-
-    if prod1 >= UNIT {
-        return Err(StdError::generic_err(format!(
-            "PRBMath__MulDivFixedPointOverflow {}",
-            prod1
-        )));
+    // The operations can never overflow because the result is max 2^127 when it enters this block.
+    result = result + x / result >> 1;
+    result = result + x / result >> 1;
+    result = result + x / result >> 1;
+    result = result + x / result >> 1;
+    result = result + x / result >> 1;
+    result = result + x / result >> 1;
+    result = result + x / result >> 1; // Seven iterations should be enough
+    let rounded_down_result = x / result;
+    if result >= rounded_down_result {
+        rounded_down_result
+    } else {
+        result
     }
-
-    let remainder = Asm::mulmod(x, y, UNIT)?;
-
-    if prod1 == 0 {
-        return Ok(prod0 / UNIT);
-    }
-
-    Ok(Asm::mul(
-        Asm::or(
-            Asm::div(Asm::u_sub(prod0, remainder)?, UNIT_LPOTD),
-            Asm::mul(
-                Asm::u_sub(prod1, Asm::gt(remainder, prod0))?,
-                Asm::add(
-                    Asm::div(Asm::u_sub(U256::ZERO, UNIT_LPOTD)?, UNIT_LPOTD),
-                    U256::ONE,
-                )?,
-            )?,
-        ),
-        UNIT_INVERSE,
-    )?)
 }
 
-/// Performs bankers rounding using the nth digit.
-pub fn bankers_round(x: U256, digit: u8) -> U256 {
-    let n = nth_digit(x, digit);
-    let round_up = match n {
-        5 => {
-            let next_digit = nth_digit(x, digit + 1);
-            // Checks if the next digit is the nearest even integer.
-            next_digit % 2 != 0
-        }
-        _ => n > 5,
-    };
-    let precision = exp10(digit as u16);
-
-    (x + if round_up { precision } else { U256::ZERO }) / precision * precision
-}
-
-/// Where x is a positive integer. Supports up to 32 digits.
-pub fn nth_digit(x: U256, digit: u8) -> u8 {
-    ((x / exp10((digit - 1) as u16)) % 10).as_u8()
-}
 
 #[cfg(test)]
 mod test {
@@ -653,5 +671,14 @@ mod test {
     fn test_is_odd(#[case] x: U256, #[case] expected: bool) {
         let actual = is_odd(x);
         assert_eq!(actual, expected);
+    }
+
+    #[rstest]
+    #[case(TWO_TO_128, "340282366920938463463374607431768211456")]
+    #[case(SQRT_MAX_UD60X18, "340282366920938463463374607431768211455999999999")]
+    #[case(MAX_SCALED_UD60X18, "115792089237316195423570985008687907853269984665640564039457")]
+    #[case(TWO_TO_255, "57896044618658097711785492504343953926634992332820282019728792003956564819968")]
+    fn test_constants(#[case] x: U256, #[case] expected: &str) {
+        assert_eq!(x.to_string(), expected);
     }
 }

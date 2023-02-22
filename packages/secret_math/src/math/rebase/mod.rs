@@ -1,5 +1,5 @@
 use crate::{
-    core::{checked_add, checked_sub, muldiv},
+    common::{checked_add, checked_sub, muldiv},
     make_borsh,
 };
 use cosmwasm_std::StdResult;

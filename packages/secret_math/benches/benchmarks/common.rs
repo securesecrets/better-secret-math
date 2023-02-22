@@ -1,11 +1,11 @@
 use better_secret_math::{
-    core::{muldiv, muldiv18},
-    ud60x18::mul,
-    UNIT_u128, UNIT,
+    common::{muldiv, muldiv18},
+    ud60x18::{mul, constants::UNIT},
+    UNIT_U128,
 };
-use cosmwasm_std::{Decimal256, OverflowError, StdResult, Uint256};
+use cosmwasm_std::{Decimal256, StdResult, Uint256};
 use criterion::{black_box, criterion_group, Criterion};
-use ethnum::{I256, U256};
+use ethnum::{U256};
 
 fn math(x: Uint256, y: Uint256) -> Uint256 {
     let x = U256::from_be_bytes(x.to_be_bytes());
@@ -101,7 +101,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| {
             black_box(sml_uint[2]).multiply_ratio(
                 black_box(sml_uint[3]),
-                black_box(Uint256::from_u128(UNIT_u128)),
+                black_box(Uint256::from_u128(UNIT_U128)),
             )
         })
     });

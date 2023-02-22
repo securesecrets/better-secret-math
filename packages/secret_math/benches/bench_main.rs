@@ -4,5 +4,5 @@ mod benchmarks;
 
 criterion_main! {
     benchmarks::rebase::benches,
-    benchmarks::core::benches,
+    benchmarks::common::benches,
 }

@@ -1,23 +1,22 @@
 //! For advanced fixed-point math that works with U256 numbers which are considered to have 18 trailing decimals. We call this number representation unsigned 60.18-decimal fixed-point, since there can be up to 60 digits in the integer part and up to 18 decimals in the fractional part. The numbers are bound by the minimum and the maximum values permitted by the CosmWasm type U256.
 //!
-
-use super::{
-    asm::Asm, core, tens::*, MAX_UD60x18, MAX_WHOLE_UD60x18, DOUBLE_UNIT, HALF_UNIT, LOG2_E, UNIT,
-};
-use crate::{
-    asm::AsmError,
-    core::{most_significant_bit, muldiv, muldiv18},
-};
-use cosmwasm_std::{DivideByZeroError, StdError, StdResult};
-use ethnum::{AsU256, U256};
-
+//!
+pub mod constants;
 #[cfg(test)]
 mod tests;
 
+use super::{
+    asm::Asm, common, tens::*
+};
+use crate::{
+    common::{most_significant_bit, muldiv, muldiv18},
+};
+use cosmwasm_std::{DivideByZeroError, StdError, StdResult};
+use ethnum::{AsU256, U256};
+use constants::*;
+
 #[derive(thiserror::Error, Debug)]
 pub enum UD60x18Error {
-    #[error(transparent)]
-    Assembly(#[from] AsmError),
     #[error("UD60x18 Addition overflow: {0} + {1}")]
     AddOverflow(U256, U256),
     #[error("UD60x18 Ceil overflow: {0}")]
@@ -80,7 +79,7 @@ pub fn avg(x: U256, y: U256) -> U256 {
 ///
 /// x must be less than or equal to U256::MAX();
 pub fn ceil(x: U256) -> StdResult<U256> {
-    if x > MAX_WHOLE_UD60x18 {
+    if x > MAX_WHOLE_UD60X18 {
         return Err(UD60x18Error::CeilOverflow(x).into());
     }
     let remainder = x % UNIT;
@@ -104,7 +103,7 @@ pub fn exp2(x: U256) -> StdResult<U256> {
         return Err(UD60x18Error::Exp2InputTooBig(x).into());
     }
     let x192x64 = (x << 64) / UNIT;
-    Ok(core::exp2(x192x64))
+    Ok(common::exp2(x192x64))
 }
 
 /// Calculates the natural exponent of x.
@@ -160,7 +159,7 @@ pub fn from_UD60x18(x: U256) -> U256 {
 /// TO-DO: Deprecate this
 /// Asserts that 2 unsigned 60.18-decimal fixed-point values are within some decimal precision error.
 pub fn assert_with_precision(actual: U256, expected: U256, error: U256) {
-    use crate::core::abs_diff;
+    use crate::common::abs_diff;
 
     if error > U256::ONE * UNIT {
         panic!("Error precision cannot be 1.")
@@ -243,88 +242,88 @@ pub fn log10(x: U256) -> StdResult<U256> {
     // in this contract.
     // prettier-ignore
     match x {
-        QUINTILLIONTH => result = Asm::mul(UNIT, phantom_sub(0, 18))?,
-        HUN_QUADRILLIONTH => result = Asm::mul(UNIT, phantom_sub(1, 18))?,
-        TEN_QUADRILLIONTH => result = Asm::mul(UNIT, phantom_sub(2, 18))?,
-        QUADRILLIONTH => result = Asm::mul(UNIT, phantom_sub(3, 18))?,
-        HUN_TRILLIONTH => result = Asm::mul(UNIT, phantom_sub(4, 18))?,
-        TEN_TRILLIONTH => result = Asm::mul(UNIT, phantom_sub(5, 18))?,
-        TRILLIONTH => result = Asm::mul(UNIT, phantom_sub(6, 18))?,
-        HUN_BILLIONTH => result = Asm::mul(UNIT, phantom_sub(7, 18))?,
-        TEN_BILLIONTH => result = Asm::mul(UNIT, phantom_sub(8, 18))?,
-        BILLIONTH => result = Asm::mul(UNIT, phantom_sub(9, 18))?,
-        HUN_MILLIONTH => result = Asm::mul(UNIT, phantom_sub(10, 18))?,
-        TEN_MILLIONTH => result = Asm::mul(UNIT, phantom_sub(11, 18))?,
-        MILLIONTH => result = Asm::mul(UNIT, phantom_sub(12, 18))?,
-        HUN_THOUSANDTH => result = Asm::mul(UNIT, phantom_sub(13, 18))?,
-        TEN_THOUSANDTH => result = Asm::mul(UNIT, phantom_sub(14, 18))?,
-        THOUSANDTH => result = Asm::mul(UNIT, phantom_sub(15, 18))?,
-        HUNDREDTH => result = Asm::mul(UNIT, phantom_sub(16, 18))?,
-        TENTH => result = Asm::mul(UNIT, phantom_sub(17, 18))?,
+        QUINTILLIONTH => result = Asm::mul(UNIT, phantom_sub(0, 18)),
+        HUN_QUADRILLIONTH => result = Asm::mul(UNIT, phantom_sub(1, 18)),
+        TEN_QUADRILLIONTH => result = Asm::mul(UNIT, phantom_sub(2, 18)),
+        QUADRILLIONTH => result = Asm::mul(UNIT, phantom_sub(3, 18)),
+        HUN_TRILLIONTH => result = Asm::mul(UNIT, phantom_sub(4, 18)),
+        TEN_TRILLIONTH => result = Asm::mul(UNIT, phantom_sub(5, 18)),
+        TRILLIONTH => result = Asm::mul(UNIT, phantom_sub(6, 18)),
+        HUN_BILLIONTH => result = Asm::mul(UNIT, phantom_sub(7, 18)),
+        TEN_BILLIONTH => result = Asm::mul(UNIT, phantom_sub(8, 18)),
+        BILLIONTH => result = Asm::mul(UNIT, phantom_sub(9, 18)),
+        HUN_MILLIONTH => result = Asm::mul(UNIT, phantom_sub(10, 18)),
+        TEN_MILLIONTH => result = Asm::mul(UNIT, phantom_sub(11, 18)),
+        MILLIONTH => result = Asm::mul(UNIT, phantom_sub(12, 18)),
+        HUN_THOUSANDTH => result = Asm::mul(UNIT, phantom_sub(13, 18)),
+        TEN_THOUSANDTH => result = Asm::mul(UNIT, phantom_sub(14, 18)),
+        THOUSANDTH => result = Asm::mul(UNIT, phantom_sub(15, 18)),
+        HUNDREDTH => result = Asm::mul(UNIT, phantom_sub(16, 18)),
+        TENTH => result = Asm::mul(UNIT, phantom_sub(17, 18)),
         ONE => result = U256::ZERO,
         TEN => result = UNIT,
-        HUNDRED => result = Asm::mul(UNIT, U256::new(2u128))?,
-        THOUSAND => result = Asm::mul(UNIT, U256::new(3u128))?,
-        TEN_THOUSAND => result = Asm::mul(UNIT, U256::new(4u128))?,
-        HUN_THOUSAND => result = Asm::mul(UNIT, U256::new(5u128))?,
-        MILLION => result = Asm::mul(UNIT, U256::new(6u128))?,
-        TEN_MILLION => result = Asm::mul(UNIT, U256::new(7u128))?,
-        HUN_MILLION => result = Asm::mul(UNIT, U256::new(8u128))?,
-        BILLION => result = Asm::mul(UNIT, U256::new(9u128))?,
-        TEN_BILLION => result = Asm::mul(UNIT, U256::new(10u128))?,
-        HUN_BILLION => result = Asm::mul(UNIT, U256::new(11u128))?,
-        TRILLION => result = Asm::mul(UNIT, U256::new(12u128))?,
-        TEN_TRILLION => result = Asm::mul(UNIT, U256::new(13u128))?,
-        HUN_TRILLION => result = Asm::mul(UNIT, U256::new(14u128))?,
-        QUADRILLION => result = Asm::mul(UNIT, U256::new(15u128))?,
-        TEN_QUADRILLION => result = Asm::mul(UNIT, U256::new(16u128))?,
-        HUN_QUADRILLION => result = Asm::mul(UNIT, U256::new(17u128))?,
-        QUINTILLION => result = Asm::mul(UNIT, U256::new(18u128))?,
-        TEN_QUINTILLION => result = Asm::mul(UNIT, U256::new(19u128))?,
-        HUN_QUINTILLION => result = Asm::mul(UNIT, U256::new(20u128))?,
-        SEXTILLION => result = Asm::mul(UNIT, U256::new(21u128))?,
-        TEN_SEXTILLION => result = Asm::mul(UNIT, U256::new(22u128))?,
-        HUN_SEXTILLION => result = Asm::mul(UNIT, U256::new(23u128))?,
-        SEPTILLION => result = Asm::mul(UNIT, U256::new(24u128))?,
-        TEN_SEPTILLION => result = Asm::mul(UNIT, U256::new(25u128))?,
-        HUN_SEPTILLION => result = Asm::mul(UNIT, U256::new(26u128))?,
-        OCTILLION => result = Asm::mul(UNIT, U256::new(27u128))?,
-        TEN_OCTILLION => result = Asm::mul(UNIT, U256::new(28u128))?,
-        HUN_OCTILLION => result = Asm::mul(UNIT, U256::new(29u128))?,
-        NONILLION => result = Asm::mul(UNIT, U256::new(30u128))?,
-        TEN_NONILLION => result = Asm::mul(UNIT, U256::new(31u128))?,
-        HUN_NONILLION => result = Asm::mul(UNIT, U256::new(32u128))?,
-        DECILLION => result = Asm::mul(UNIT, U256::new(33u128))?,
-        TEN_DECILLION => result = Asm::mul(UNIT, U256::new(34u128))?,
-        HUN_DECILLION => result = Asm::mul(UNIT, U256::new(35u128))?,
-        UNDECILLION => result = Asm::mul(UNIT, U256::new(36u128))?,
-        TEN_UNDECILLION => result = Asm::mul(UNIT, U256::new(37u128))?,
-        HUN_UNDECILLION => result = Asm::mul(UNIT, U256::new(38u128))?,
-        DUODECILLION => result = Asm::mul(UNIT, U256::new(39u128))?,
-        TEN_DUODECILLION => result = Asm::mul(UNIT, U256::new(40u128))?,
-        HUN_DUODECILLION => result = Asm::mul(UNIT, U256::new(41u128))?,
-        TREDECILLION => result = Asm::mul(UNIT, U256::new(42u128))?,
-        TEN_TREDECILLION => result = Asm::mul(UNIT, U256::new(43u128))?,
-        HUN_TREDECILLION => result = Asm::mul(UNIT, U256::new(44u128))?,
-        QUATTUORDECILLION => result = Asm::mul(UNIT, U256::new(45u128))?,
-        TEN_QUATTUORDECILLION => result = Asm::mul(UNIT, U256::new(46u128))?,
-        HUN_QUATTUORDECILLION => result = Asm::mul(UNIT, U256::new(47u128))?,
-        QUINDECILLION => result = Asm::mul(UNIT, U256::new(48u128))?,
-        TEN_QUINDECILLION => result = Asm::mul(UNIT, U256::new(49u128))?,
-        HUN_QUINDECILLION => result = Asm::mul(UNIT, U256::new(50u128))?,
-        SEXDECILLION => result = Asm::mul(UNIT, U256::new(51u128))?,
-        TEN_SEXDECILLION => result = Asm::mul(UNIT, U256::new(52u128))?,
-        HUN_SEXDECILLION => result = Asm::mul(UNIT, U256::new(53u128))?,
-        SEPTENDECILLION => result = Asm::mul(UNIT, U256::new(54u128))?,
-        TEN_SEPTENDECILLION => result = Asm::mul(UNIT, U256::new(55u128))?,
-        HUN_SEPTENDECILLION => result = Asm::mul(UNIT, U256::new(56u128))?,
-        OCTODECILLION => result = Asm::mul(UNIT, U256::new(57u128))?,
-        TEN_OCTODECILLION => result = Asm::mul(UNIT, U256::new(58u128))?,
-        HUN_OCTODECILLION => result = Asm::mul(UNIT, U256::new(59u128))?,
-        _ => result = MAX_UD60x18,
+        HUNDRED => result = Asm::mul(UNIT, U256::new(2u128)),
+        THOUSAND => result = Asm::mul(UNIT, U256::new(3u128)),
+        TEN_THOUSAND => result = Asm::mul(UNIT, U256::new(4u128)),
+        HUN_THOUSAND => result = Asm::mul(UNIT, U256::new(5u128)),
+        MILLION => result = Asm::mul(UNIT, U256::new(6u128)),
+        TEN_MILLION => result = Asm::mul(UNIT, U256::new(7u128)),
+        HUN_MILLION => result = Asm::mul(UNIT, U256::new(8u128)),
+        BILLION => result = Asm::mul(UNIT, U256::new(9u128)),
+        TEN_BILLION => result = Asm::mul(UNIT, U256::new(10u128)),
+        HUN_BILLION => result = Asm::mul(UNIT, U256::new(11u128)),
+        TRILLION => result = Asm::mul(UNIT, U256::new(12u128)),
+        TEN_TRILLION => result = Asm::mul(UNIT, U256::new(13u128)),
+        HUN_TRILLION => result = Asm::mul(UNIT, U256::new(14u128)),
+        QUADRILLION => result = Asm::mul(UNIT, U256::new(15u128)),
+        TEN_QUADRILLION => result = Asm::mul(UNIT, U256::new(16u128)),
+        HUN_QUADRILLION => result = Asm::mul(UNIT, U256::new(17u128)),
+        QUINTILLION => result = Asm::mul(UNIT, U256::new(18u128)),
+        TEN_QUINTILLION => result = Asm::mul(UNIT, U256::new(19u128)),
+        HUN_QUINTILLION => result = Asm::mul(UNIT, U256::new(20u128)),
+        SEXTILLION => result = Asm::mul(UNIT, U256::new(21u128)),
+        TEN_SEXTILLION => result = Asm::mul(UNIT, U256::new(22u128)),
+        HUN_SEXTILLION => result = Asm::mul(UNIT, U256::new(23u128)),
+        SEPTILLION => result = Asm::mul(UNIT, U256::new(24u128)),
+        TEN_SEPTILLION => result = Asm::mul(UNIT, U256::new(25u128)),
+        HUN_SEPTILLION => result = Asm::mul(UNIT, U256::new(26u128)),
+        OCTILLION => result = Asm::mul(UNIT, U256::new(27u128)),
+        TEN_OCTILLION => result = Asm::mul(UNIT, U256::new(28u128)),
+        HUN_OCTILLION => result = Asm::mul(UNIT, U256::new(29u128)),
+        NONILLION => result = Asm::mul(UNIT, U256::new(30u128)),
+        TEN_NONILLION => result = Asm::mul(UNIT, U256::new(31u128)),
+        HUN_NONILLION => result = Asm::mul(UNIT, U256::new(32u128)),
+        DECILLION => result = Asm::mul(UNIT, U256::new(33u128)),
+        TEN_DECILLION => result = Asm::mul(UNIT, U256::new(34u128)),
+        HUN_DECILLION => result = Asm::mul(UNIT, U256::new(35u128)),
+        UNDECILLION => result = Asm::mul(UNIT, U256::new(36u128)),
+        TEN_UNDECILLION => result = Asm::mul(UNIT, U256::new(37u128)),
+        HUN_UNDECILLION => result = Asm::mul(UNIT, U256::new(38u128)),
+        DUODECILLION => result = Asm::mul(UNIT, U256::new(39u128)),
+        TEN_DUODECILLION => result = Asm::mul(UNIT, U256::new(40u128)),
+        HUN_DUODECILLION => result = Asm::mul(UNIT, U256::new(41u128)),
+        TREDECILLION => result = Asm::mul(UNIT, U256::new(42u128)),
+        TEN_TREDECILLION => result = Asm::mul(UNIT, U256::new(43u128)),
+        HUN_TREDECILLION => result = Asm::mul(UNIT, U256::new(44u128)),
+        QUATTUORDECILLION => result = Asm::mul(UNIT, U256::new(45u128)),
+        TEN_QUATTUORDECILLION => result = Asm::mul(UNIT, U256::new(46u128)),
+        HUN_QUATTUORDECILLION => result = Asm::mul(UNIT, U256::new(47u128)),
+        QUINDECILLION => result = Asm::mul(UNIT, U256::new(48u128)),
+        TEN_QUINDECILLION => result = Asm::mul(UNIT, U256::new(49u128)),
+        HUN_QUINDECILLION => result = Asm::mul(UNIT, U256::new(50u128)),
+        SEXDECILLION => result = Asm::mul(UNIT, U256::new(51u128)),
+        TEN_SEXDECILLION => result = Asm::mul(UNIT, U256::new(52u128)),
+        HUN_SEXDECILLION => result = Asm::mul(UNIT, U256::new(53u128)),
+        SEPTENDECILLION => result = Asm::mul(UNIT, U256::new(54u128)),
+        TEN_SEPTENDECILLION => result = Asm::mul(UNIT, U256::new(55u128)),
+        HUN_SEPTENDECILLION => result = Asm::mul(UNIT, U256::new(56u128)),
+        OCTODECILLION => result = Asm::mul(UNIT, U256::new(57u128)),
+        TEN_OCTODECILLION => result = Asm::mul(UNIT, U256::new(58u128)),
+        HUN_OCTODECILLION => result = Asm::mul(UNIT, U256::new(59u128)),
+        _ => result = MAX_UD60X18,
     }
 
-    if result == MAX_UD60x18 {
+    if result == MAX_UD60X18 {
         result = (log2(x)? * UNIT) / 3_321928094887362347;
     }
     Ok(result)
@@ -483,18 +482,18 @@ pub fn scale() -> U256 {
 /// @param x The unsigned 60.18-decimal fixed-point number for which to calculate the square root.
 /// @return result The result as an unsigned 60.18-decimal fixed-point .
 pub fn sqrt(x: U256) -> StdResult<U256> {
-    if x > MAX_UD60x18 / UNIT {
+    if x > MAX_UD60X18 / UNIT {
         return Err(UD60x18Error::SqrtOverflow(x).into());
     }
     // Multiply x by the UNIT to account for the factor of UNIT that is picked up when multiplying two unsigned
     // 60.18-decimal fixed-point numbers together (in this case, those two numbers are both the square root).
-    Ok(core::sqrt(x * UNIT))
+    Ok(common::sqrt(x * UNIT))
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use cosmwasm_std::{Decimal256, Uint256};
+    use cosmwasm_std::{Decimal256};
     use rstest::*;
 
     #[rstest]
