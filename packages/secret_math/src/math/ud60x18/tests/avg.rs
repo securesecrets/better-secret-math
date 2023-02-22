@@ -1,5 +1,5 @@
 use super::*;
-use crate::{ud60x18::{avg, MAX_UD60X18, MAX_WHOLE_UD60X18}};
+use crate::ud60x18::{avg, MAX_UD60X18, MAX_WHOLE_UD60X18};
 
 #[rstest]
 #[case("0", "0", "0")]

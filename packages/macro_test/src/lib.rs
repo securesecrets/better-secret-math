@@ -2,7 +2,6 @@
 mod tests {
     use better_secret_math::U256;
     use btr_macros::support_interface;
-    
 
     #[derive(support_interface)]
     pub struct Derive {
@@ -34,7 +33,6 @@ mod tests {
 
     #[test]
     fn struct_generation() {
-        
         // Test that is builds
         let _assert = DeriveInterface {
             other: 10,

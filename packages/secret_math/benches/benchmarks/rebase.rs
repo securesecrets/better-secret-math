@@ -9,14 +9,18 @@ pub fn rebase_benchmark(c: &mut Criterion) {
     group.bench_function("add_base", |b| {
         b.iter(|| {
             let mut rebase = Rebase::init();
-            rebase.add_base(black_box(Uint256::from_u128(1000000u128)), false).unwrap();
+            rebase
+                .add_base(black_box(Uint256::from_u128(1000000u128)), false)
+                .unwrap();
         })
     });
 
     group.bench_function("better_add_base", |b| {
         b.iter(|| {
             let mut rebase = BtrRebase::init();
-            rebase.add_base(black_box(U256::new(1000000u128)), false).unwrap();
+            rebase
+                .add_base(black_box(U256::new(1000000u128)), false)
+                .unwrap();
         })
     });
 }

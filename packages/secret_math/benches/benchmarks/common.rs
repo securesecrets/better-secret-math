@@ -1,11 +1,11 @@
 use better_secret_math::{
     common::{muldiv, muldiv18},
-    ud60x18::{mul, constants::UNIT},
+    ud60x18::{constants::UNIT, mul},
     UNIT_U128,
 };
 use cosmwasm_std::{Decimal256, StdResult, Uint256};
 use criterion::{black_box, criterion_group, Criterion};
-use ethnum::{U256};
+use ethnum::U256;
 
 fn math(x: Uint256, y: Uint256) -> Uint256 {
     let x = U256::from_be_bytes(x.to_be_bytes());

@@ -5,7 +5,6 @@ pub mod common;
 mod rebase;
 pub mod sd59x18;
 pub(crate) mod tens;
-pub(crate) use ud60x18::constants::*;
 pub mod ud60x18;
 pub use rebase::*;
 

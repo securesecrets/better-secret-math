@@ -2,7 +2,7 @@ use cosmwasm_std::{StdError, StdResult};
 use ethnum::{I256, U256};
 
 use crate::asm::Asm;
-use crate::common::muldiv18;
+use crate::common::{msb, muldiv18};
 
 use super::common;
 use super::{HALF_UNIT_U128, LOG2_E_U128, UNIT_U128};
@@ -212,7 +212,7 @@ pub fn log2(mut x: I256) -> StdResult<I256> {
 
     // Calculate the integer part of the logarithm and add it to the result and finally calculate y = x * 2^(-n).
     let a = (x / UNIT).as_u256();
-    let n = super::common::most_significant_bit(a).as_i256();
+    let n = msb(a).as_i256();
 
     // The integer part of the logarithm as a signed 59.18-decimal fixed-point number. The operation can't overflow
     // because n is maximum 255, UNIT is 1e18 and sign is either 1 or -1.

@@ -5,15 +5,11 @@ pub mod constants;
 #[cfg(test)]
 mod tests;
 
-use super::{
-    asm::Asm, common, tens::*
-};
-use crate::{
-    common::{most_significant_bit, muldiv, muldiv18},
-};
+use super::{asm::Asm, common, tens::*};
+use crate::common::{msb, muldiv, muldiv18};
+use constants::*;
 use cosmwasm_std::{DivideByZeroError, StdError, StdResult};
 use ethnum::{AsU256, U256};
-use constants::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum UD60x18Error {
@@ -49,7 +45,7 @@ fn phantom_sub(x: i32, y: i32) -> U256 {
     x.as_u256() - y.as_u256()
 }
 
-/// @notice Calculates the arithmetic average of x and y, rounding down.
+/// @notice Calculates the arithmetic average of two unsigned integers, x and y, rounding down.
 ///
 /// @dev Based on the formula:
 ///
@@ -65,14 +61,8 @@ fn phantom_sub(x: i32, y: i32) -> U256 {
 ///
 /// This technique is known as SWAR, which stands for "SIMD within a register". You can read more about it here:
 /// https://devblogs.microsoft.com/oldnewthing/20220207-00/?p=106223
-///
-/// @param x The first operand as an UD60x18 number.
-/// @param y The second operand as an UD60x18 number.
-/// @return result The arithmetic average as an UD60x18 number.
 pub fn avg(x: U256, y: U256) -> U256 {
-    let x_and_y = x & y;
-    let half_of_xor_x_and_y = (x ^ y) >> 1;
-    x_and_y + half_of_xor_x_and_y
+    (x & y) + ((x ^ y) >> 1)
 }
 
 /// Yields the least unsigned value greater than or equal to x.
@@ -152,28 +142,8 @@ pub fn inv(x: U256) -> StdResult<U256> {
 ///
 /// @param x The basic integer to convert.
 /// @param result The same number in unsigned 60.18-decimal fixed-point representation.
-pub fn from_UD60x18(x: U256) -> U256 {
+pub fn from_ud60x18(x: U256) -> U256 {
     x / UNIT
-}
-
-/// TO-DO: Deprecate this
-/// Asserts that 2 unsigned 60.18-decimal fixed-point values are within some decimal precision error.
-pub fn assert_with_precision(actual: U256, expected: U256, error: U256) {
-    use crate::common::abs_diff;
-
-    if error > U256::ONE * UNIT {
-        panic!("Error precision cannot be 1.")
-    }
-    let err = abs_diff(actual, expected);
-    let acceptable = muldiv(expected, error, UNIT).unwrap();
-
-    assert!(
-        err <= acceptable,
-        "Check failed - actual: {}, expected: {}, exceeds acceptable error {}",
-        actual,
-        expected,
-        error
-    );
 }
 
 /// Performs x * (y / z) where x, y, z are all 60.18-decimal fixed-point numbers.
@@ -187,7 +157,7 @@ pub fn log2(x: U256) -> StdResult<U256> {
         return Err(UD60x18Error::LogInputTooSmall(x).into());
     }
     // Calculate the integer part of the logarithm and add it to the result and finally calculate y = x * 2^(-n).
-    let n = most_significant_bit(x / UNIT);
+    let n = msb(x / UNIT);
 
     // The integer part of the logarithm as an unsigned 60.18-decimal fixed-point number. The operation can't overflow
     // because n is maximum 255 and UNIT is 1e18.
@@ -360,19 +330,14 @@ pub fn frac(x: U256) -> U256 {
 /// @param y The second operand as an unsigned 60.18-decimal fixed-point number.
 /// @return result The result as an unsigned 60.18-decimal fixed-point number.
 pub fn gm(x: U256, y: U256) -> StdResult<U256> {
-    if x == 0 {
+    if x == 0 || y == 0 {
         return Ok(U256::ZERO);
     }
 
-    // Checking for overflow this way is faster than letting Solidity do it.
-    let xy = x * y;
-    if xy / x != y {
-        return Err(UD60x18Error::GmOverflow(x, y).into());
+    match x.checked_mul(y) {
+        Some(xy) => sqrt(xy),
+        None => Err(UD60x18Error::GmOverflow(x, y).into()),
     }
-
-    // We don't need to multiply by the UNIT here because the x*y product had already picked up a factor of UNIT
-    // during multiplication. See the comments within the "sqrt" pub fn.
-    sqrt(xy)
 }
 
 /// @notice Calculates the natural logarithm of x.
@@ -493,7 +458,7 @@ pub fn sqrt(x: U256) -> StdResult<U256> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use cosmwasm_std::{Decimal256};
+    use cosmwasm_std::Decimal256;
     use rstest::*;
 
     #[rstest]

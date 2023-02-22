@@ -1,9 +1,8 @@
 //! Common mathematical functions used in ud60x18 and sd59x18. Note that this shared library does not always assume the unsigned 60.18-decimal fixed-point representation. When it does not, it is explicitly mentioned in the documentation.
 //! Forks methods from here - https://github.com/paulrberg/prb-math/blob/main/contracts/PRBMath.sol.
 pub use super::tens::exp10;
-use crate::{asm::Asm, ud60x18::constants::*,
-};
-use cosmwasm_std::{OverflowError, OverflowOperation, StdError, StdResult};
+use crate::{asm::Asm, ud60x18::constants::*};
+use cosmwasm_std::{DivideByZeroError, OverflowError, OverflowOperation, StdError, StdResult};
 use std::ops::Not;
 
 use ethnum::U256;
@@ -32,17 +31,6 @@ pub fn checked_sub(x: U256, y: U256) -> StdResult<U256> {
     } else {
         Ok(x - y)
     }
-}
-
-/// Calculates the arithmetic average of x and y, rounding down.
-pub fn avg(x: U256, y: U256) -> U256 {
-    // This can never overflow.
-    let mut result = (x >> 1) + (y >> 1);
-    // If both numbers are odd, the 0.5 remainder gets truncated twice so we add it back.
-    if is_odd(x) && is_odd(y) {
-        result += U256::ONE;
-    }
-    result
 }
 
 /// Takes the absolute difference of two unsigned ints.
@@ -78,43 +66,42 @@ pub fn nth_digit(x: U256, digit: u8) -> u8 {
 /// @dev See the note on msb in the "Find First Set" Wikipedia article https://en.wikipedia.org/wiki/Find_first_set
 /// @param x The uint256 number for which to find the index of the most significant bit.
 /// @return msb The index of the most significant bit as an uint256.
-pub fn most_significant_bit(mut x: U256) -> U256 {
-    let mut msb = U256::ZERO;
-    let two = U256::from(2u128);
+pub fn msb(mut x: U256) -> U256 {
+    let mut result = U256::ZERO;
 
-    if x >= two.pow(128) {
-        x >>= 128;
-        msb += 128;
-    }
-    if x >= two.pow(64) {
-        x >>= 64;
-        msb += 64;
-    }
-    if x >= two.pow(32) {
-        x >>= 32;
-        msb += 32;
-    }
-    if x >= two.pow(16) {
-        x >>= 16;
-        msb += 16;
-    }
-    if x >= two.pow(8) {
-        x >>= 8;
-        msb += 8;
-    }
-    if x >= two.pow(4) {
-        x >>= 4;
-        msb += 4;
-    }
-    if x >= two.pow(2) {
-        x >>= 2;
-        msb += 2;
-    }
-    if x >= two.pow(1) {
-        // No need to shift x any more.
-        msb += 1;
-    }
-    msb
+    let mut factor = Asm::shl(
+        U256::new(7u128),
+        Asm::gt(x, U256::new(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)),
+    );
+    x >>= factor;
+    result = Asm::or(result, factor);
+
+    factor = Asm::shl(U256::new(6u128), Asm::gt(x, U256::new(0xFFFFFFFFFFFFFFFF)));
+    x >>= factor;
+    result = Asm::or(result, factor);
+
+    factor = Asm::shl(U256::new(5u128), Asm::gt(x, U256::new(0xFFFFFFFF)));
+    x >>= factor;
+    result = Asm::or(result, factor);
+
+    factor = Asm::shl(U256::new(4u128), Asm::gt(x, U256::new(0xFFFF)));
+    x >>= factor;
+    result = Asm::or(result, factor);
+
+    factor = Asm::shl(U256::new(3u128), Asm::gt(x, U256::new(0xFF)));
+    x >>= factor;
+    result = Asm::or(result, factor);
+
+    factor = Asm::shl(U256::new(2u128), Asm::gt(x, U256::new(0xF)));
+    x >>= factor;
+    result = Asm::or(result, factor);
+
+    factor = Asm::shl(U256::new(1u128), Asm::gt(x, U256::new(0x3)));
+    x >>= factor;
+    result = Asm::or(result, factor);
+
+    factor = Asm::gt(x, U256::new(0x1));
+    Asm::or(result, factor)
 }
 
 /// @notice Calculates floor(x*y÷denominator) with full precision.
@@ -134,6 +121,14 @@ pub fn most_significant_bit(mut x: U256) -> U256 {
 /// @param denominator The divisor as an uint256.
 /// @return result The result as an uint256.
 pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
+    if denominator == 0 {
+        return Err(StdError::DivideByZero {
+            source: DivideByZeroError {
+                operand: "better_secret_math::muldiv".to_string(),
+            },
+        });
+    }
+
     // 512-bit multiply [prod1 prod0] = x * y. Compute the product mod 2^256 and mod 2^256 - 1, then use
     // use the Chinese Remainder Theorem to reconstruct the 512 bit result. The result is stored in two 256
     // variables such that product = prod1 * 2^256 + prod0.
@@ -212,9 +207,8 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
     // less than 2^256, this is the final result. We don't need to compute the high bits of the result and prod1
     // is no longer required.
     result = prod0 * inverse;
-    Ok(bankers_round(result, 1))
+    Ok(result)
 }
-
 
 /// @notice Calculates floor(x*y÷1e18) with full precision.
 ///
@@ -235,7 +229,6 @@ pub fn muldiv(x: U256, y: U256, mut denominator: U256) -> StdResult<U256> {
 /// @param y The multiplier as an unsigned 60.18-decimal fixed-point number.
 /// @return result The result as an unsigned 60.18-decimal fixed-point number.
 pub fn muldiv18(x: U256, y: U256) -> StdResult<U256> {
-
     let mm = Asm::mulmod(x, y, !U256::ZERO);
     let prod0 = Asm::mul(x, y);
     let prod1 = Asm::u_sub(Asm::u_sub(mm, prod0), Asm::lt(mm, prod0));
@@ -592,7 +585,6 @@ pub fn sqrt(x: U256) -> U256 {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use rstest::*;
@@ -638,13 +630,6 @@ mod test {
     }
 
     #[rstest]
-    #[case("12000", "12000", "12000")]
-    #[case("11", "13", "12")]
-    fn test_avg(#[case] x: U256, #[case] y: U256, #[case] xavgy: U256) {
-        assert_eq!(avg(x, y), xavgy);
-    }
-
-    #[rstest]
     #[case("20", "10", "10")]
     #[case("1", "9999", "9998")]
     fn test_abs_diff(#[case] x: U256, #[case] y: U256, #[case] expected: U256) {
@@ -676,8 +661,14 @@ mod test {
     #[rstest]
     #[case(TWO_TO_128, "340282366920938463463374607431768211456")]
     #[case(SQRT_MAX_UD60X18, "340282366920938463463374607431768211455999999999")]
-    #[case(MAX_SCALED_UD60X18, "115792089237316195423570985008687907853269984665640564039457")]
-    #[case(TWO_TO_255, "57896044618658097711785492504343953926634992332820282019728792003956564819968")]
+    #[case(
+        MAX_SCALED_UD60X18,
+        "115792089237316195423570985008687907853269984665640564039457"
+    )]
+    #[case(
+        TWO_TO_255,
+        "57896044618658097711785492504343953926634992332820282019728792003956564819968"
+    )]
     fn test_constants(#[case] x: U256, #[case] expected: &str) {
         assert_eq!(x.to_string(), expected);
     }
