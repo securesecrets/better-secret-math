@@ -2,7 +2,6 @@
 mod tests {
     use better_secret_math::U256;
     use btr_macros::support_interface;
-    use cosmwasm_std::Uint128;
 
     #[derive(support_interface)]
     pub struct Derive {
@@ -34,9 +33,8 @@ mod tests {
 
     #[test]
     fn struct_generation() {
-        use cosmwasm_std::Decimal256;
         // Test that is builds
-        let assert = DeriveInterface {
+        let _assert = DeriveInterface {
             other: 10,
             string: "test".into(),
         };
@@ -48,7 +46,7 @@ mod tests {
             pub test: Derive,
         }
 
-        let assert = AttributeTestInterface {
+        let _assert = AttributeTestInterface {
             test: DeriveInterface {
                 other: 10,
                 string: "test".into(),
@@ -88,12 +86,12 @@ mod tests {
         #[derive(support_interface)]
         pub struct Test(String);
 
-        let assert = TestInterface("test".into());
+        let _assert = TestInterface("test".into());
 
         #[derive(support_interface)]
         pub struct AttributeTest(String, #[has_interface] Derive);
 
-        let assert = AttributeTestInterface(
+        let _assert = AttributeTestInterface(
             "test".into(),
             DeriveInterface {
                 other: 10,
