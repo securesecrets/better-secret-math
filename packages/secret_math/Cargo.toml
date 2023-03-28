@@ -33,3 +33,4 @@ btr-macros = { path = "../btr_macros" }
 rstest = "0.15.0"
 criterion = "0.3"
 serde_json = "1"
+proptest = "1.0.0"
