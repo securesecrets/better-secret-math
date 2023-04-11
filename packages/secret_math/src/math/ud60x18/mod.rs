@@ -108,7 +108,7 @@ pub fn exp(x: U256) -> StdResult<U256> {
         return Err(UD60x18Error::ExpInputTooBig(x).into());
     }
     let double_scale_product = x * LOG2_E;
-    exp2((double_scale_product + HALF_UNIT) / UNIT)
+    exp2(double_scale_product / UNIT)
 }
 
 /// Yields the greatest unsigned 60.18 decimal fixed-point number less than or equal to x.

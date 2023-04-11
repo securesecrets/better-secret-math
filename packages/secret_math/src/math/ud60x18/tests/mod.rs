@@ -5,3 +5,7 @@ pub(crate) use rstest::*;
 mod avg;
 mod div;
 mod mul;
+mod exp;
+mod exp2;
+mod floor;
+mod frac;
