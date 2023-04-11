@@ -11,17 +11,6 @@ fn test_zero() {
     assert_eq!(actual, U256::ZERO);
 }
 
-// sets.push(set({ x: 0.1e18, expected: 0.1e18 }));
-// sets.push(set({ x: 0.5e18, expected: 0.5e18 }));
-// sets.push(set({ x: 1e18, expected: 0 }));
-// sets.push(set({ x: 1.125e18, expected: 0.125e18 }));
-// sets.push(set({ x: 2e18, expected: 0 }));
-// sets.push(set({ x: PI, expected: 0.141592653589793238e18 }));
-// sets.push(set({ x: 4.2e18, expected: 0.2e18 }));
-// sets.push(set({ x: 1e24, expected: 0 }));
-// sets.push(set({ x: MAX_WHOLE_UD60x18, expected: 0 }));
-// sets.push(set({ x: MAX_UD60x18, expected: 0.584007913129639935e18 }));
-
 #[rstest]
 #[case(exp10(17), exp10(17))]
 #[case(exp10(17) * 5, exp10(17) * 5)]

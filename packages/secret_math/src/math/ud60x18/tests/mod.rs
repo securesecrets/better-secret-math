@@ -9,3 +9,6 @@ mod exp;
 mod exp2;
 mod floor;
 mod frac;
+mod ln;
+mod log2;
+mod log10;
