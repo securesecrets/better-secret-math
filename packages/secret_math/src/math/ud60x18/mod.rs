@@ -334,10 +334,13 @@ pub fn gm(x: U256, y: U256) -> StdResult<U256> {
         return Ok(U256::ZERO);
     }
 
-    match x.checked_mul(y) {
-        Some(xy) => sqrt(xy),
-        None => Err(UD60x18Error::GmOverflow(x, y).into()),
+    let xy = x.saturating_mul(y);
+
+    if xy / x != y {
+        return Err(UD60x18Error::GmOverflow(x, y).into());
     }
+
+    Ok(common::sqrt(xy))
 }
 
 /// @notice Calculates the natural logarithm of x.

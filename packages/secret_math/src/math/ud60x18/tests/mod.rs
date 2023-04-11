@@ -12,3 +12,5 @@ mod frac;
 mod ln;
 mod log2;
 mod log10;
+mod inv;
+mod gm;
