@@ -14,3 +14,6 @@ mod log2;
 mod log10;
 mod inv;
 mod gm;
+mod sqrt;
+mod pow;
+mod powu;

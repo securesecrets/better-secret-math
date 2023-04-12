@@ -399,7 +399,11 @@ pub fn pow(x: U256, y: U256) -> StdResult<U256> {
             Ok(U256::ZERO)
         }
     } else {
-        Ok(exp2(mul(log2(x)?, y)?)?)
+        if y == UNIT {
+            Ok(x)
+        } else {
+            exp2(mul(log2(x)?, y)?)
+        }
     }
 }
 
@@ -423,15 +427,15 @@ pub fn powu(x: U256, y: U256) -> StdResult<U256> {
     let mut result = if y & 1 > 0 { x } else { UNIT };
     let mut x = x;
     // Equivalent to "for(y /= 2; y > 0; y /= 2)" but faster.
-    let mut new_y = y >> 1;
-    while new_y > 0u128 {
+    let mut y = y >> 1;
+    while y > U256::ZERO {
         x = muldiv18(x, x)?;
 
         // Equivalent to "y % 2 == 1" but faster.
-        if y & 1 > 0 {
+        if y & U256::ONE > U256::ZERO {
             result = muldiv18(result, x)?;
         }
-        new_y >>= 1;
+        y >>= 1;
     }
     Ok(result)
 }
