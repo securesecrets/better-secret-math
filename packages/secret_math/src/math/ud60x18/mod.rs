@@ -108,7 +108,7 @@ pub fn exp(x: U256) -> StdResult<U256> {
         return Err(UD60x18Error::ExpInputTooBig(x).into());
     }
     let double_scale_product = x * LOG2_E;
-    exp2((double_scale_product + HALF_UNIT) / UNIT)
+    exp2(double_scale_product / UNIT)
 }
 
 /// Yields the greatest unsigned 60.18 decimal fixed-point number less than or equal to x.
@@ -334,10 +334,13 @@ pub fn gm(x: U256, y: U256) -> StdResult<U256> {
         return Ok(U256::ZERO);
     }
 
-    match x.checked_mul(y) {
-        Some(xy) => sqrt(xy),
-        None => Err(UD60x18Error::GmOverflow(x, y).into()),
+    let xy = x.saturating_mul(y);
+
+    if xy / x != y {
+        return Err(UD60x18Error::GmOverflow(x, y).into());
     }
+
+    Ok(common::sqrt(xy))
 }
 
 /// @notice Calculates the natural logarithm of x.
@@ -396,7 +399,11 @@ pub fn pow(x: U256, y: U256) -> StdResult<U256> {
             Ok(U256::ZERO)
         }
     } else {
-        Ok(exp2(mul(log2(x)?, y)?)?)
+        if y == UNIT {
+            Ok(x)
+        } else {
+            exp2(mul(log2(x)?, y)?)
+        }
     }
 }
 
@@ -420,15 +427,15 @@ pub fn powu(x: U256, y: U256) -> StdResult<U256> {
     let mut result = if y & 1 > 0 { x } else { UNIT };
     let mut x = x;
     // Equivalent to "for(y /= 2; y > 0; y /= 2)" but faster.
-    let mut new_y = y >> 1;
-    while new_y > 0u128 {
+    let mut y = y >> 1;
+    while y > U256::ZERO {
         x = muldiv18(x, x)?;
 
         // Equivalent to "y % 2 == 1" but faster.
-        if y & 1 > 0 {
+        if y & U256::ONE > U256::ZERO {
             result = muldiv18(result, x)?;
         }
-        new_y >>= 1;
+        y >>= 1;
     }
     Ok(result)
 }

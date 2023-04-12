@@ -37,7 +37,11 @@ pub fn pow(x: I256, y: I256) -> StdResult<I256> {
             return Ok(I256::ZERO);
         }
     } else {
-        exp2(mul(log2(x)?, y)?)
+        if y == UNIT {
+            Ok(x)
+        } else {
+            exp2(mul(log2(x)?, y)?)
+        }
     }
 }
 
