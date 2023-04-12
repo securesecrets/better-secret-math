@@ -50,7 +50,7 @@ checksum = "ea2b2456fd614d856680dcd9fcc660a51a820fa09daef2e49772b56a193c8474"
 
 [[package]]
 name = "better-secret-math"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "borsh",
  "btr-macros",
