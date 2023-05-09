@@ -1,6 +1,6 @@
 use super::*;
 use crate::ud60x18::{
-    pow, E, MAX_UD60X18, MAX_WHOLE_UD60X18, PI, SQRT_MAX_UD60X18,
+    pow, E, PI,
 };
 
 const MAX_PERMITTED: U256 = U256::from_words(0x0DE0B6B3A763FFFFFFFFFFFFFFFFFFFF, 0xffffffffffffffffffffffffffffffff);
@@ -52,7 +52,7 @@ fn test_exp_greater_than_max_permitted() {
 #[case(E, 1_66976 * exp10(13), U256::new(5_310893029888037560))]
 #[case(E, E, U256::new(15_154262241479263793))]
 #[case(PI, PI, U256::new(36_462159607207910473))]
-#[case(11 * exp10(18), 28_5 * exp10(17), U256::from_words(0x53C746CA, 0xB1E16FC03F12E7D3B3A11766CCE3D17F))]
+#[case(11 * exp10(18), 285 * exp10(17), U256::from_words(0x53C746CA, 0xB1E16FC03F12E7D3B3A11766CCE3D17F))]
 #[case(32_15 * exp10(16), 23_99 * exp10(16), U256::from_words(0xEFF20459D7CA9, 0xC2708EF303EB4156D71D9DE63EBEAC6D))]
 #[case(406 * exp10(18), exp10(16) * 25, U256::new(4_488812947719016318))]
 #[case(1729 * exp10(18), exp10(16) * 98, U256::new(1489_495149922256917866))]

@@ -22,7 +22,7 @@ proptest! {
     fn proptest_muldiv(order in arb_xyz(100000000, 10000000, 10000000)) {
         let (x, y, z) = order;
         let xy = x * y;
-        let xyz = xy / U256::from(z);
+        let xyz = xy / z;
         let muldiv_xyz = muldiv(x, y, z).unwrap();
         assert_eq!(xyz, muldiv_xyz);
     }

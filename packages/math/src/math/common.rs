@@ -132,13 +132,13 @@ pub fn muldiv(x: U256, y: U256, denominator: U256) -> StdResult<U256> {
     // 512-bit multiply [prod1 prod0] = x * y. Compute the product mod 2^256 and mod 2^256 - 1, then use
     // use the Chinese Remainder Theorem to reconstruct the 512 bit result. The result is stored in two 256
     // variables such that product = prod1 * 2^256 + prod0.
-    let prod0: U256; // Least significant 256 bits of the product
-    let prod1: U256; // Most significant 256 bits of the product
+     // Least significant 256 bits of the product
+     // Most significant 256 bits of the product
     let result: U256;
 
     let mm = Asm::mulmod(x, y, U256::ZERO.not());
-    prod0 = Asm::mul(x, y);
-    prod1 = Asm::u_sub(Asm::u_sub(mm, prod0), Asm::lt(mm, prod0));
+    let prod0: U256 = Asm::mul(x, y);
+    let prod1: U256 = Asm::u_sub(Asm::u_sub(mm, prod0), Asm::lt(mm, prod0));
 
     // Handle non-overflow cases, 256 by 256 division.
     if prod1 == 0 {
@@ -530,13 +530,13 @@ pub fn sqrt(x: U256) -> U256 {
     }
 
     // The operations can never overflow because the result is max 2^127 when it enters this block.
-    result = result + x / result >> 1;
-    result = result + x / result >> 1;
-    result = result + x / result >> 1;
-    result = result + x / result >> 1;
-    result = result + x / result >> 1;
-    result = result + x / result >> 1;
-    result = result + x / result >> 1; // Seven iterations should be enough
+    result = (result + x / result) >> 1;
+    result = (result + x / result) >> 1;
+    result = (result + x / result) >> 1;
+    result = (result + x / result) >> 1;
+    result = (result + x / result) >> 1;
+    result = (result + x / result) >> 1;
+    result = (result + x / result) >> 1; // Seven iterations should be enough
     let rounded_down_result = x / result;
     if result >= rounded_down_result {
         rounded_down_result
@@ -547,10 +547,8 @@ pub fn sqrt(x: U256) -> U256 {
 
 #[cfg(test)]
 mod test {
-    use cosmwasm_std::Uint256;
-    use proptest::{proptest,
-        prelude::*,
-    };
+    
+    
     use rstest::*;
     use super::*;
 

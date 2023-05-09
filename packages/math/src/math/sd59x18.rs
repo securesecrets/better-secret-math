@@ -32,16 +32,14 @@ const MIN_WHOLE_SD59X18: I256 = I256::from_words(
 pub fn pow(x: I256, y: I256) -> StdResult<I256> {
     if x == 0 {
         if y == 0 {
-            return Ok(UNIT);
+            Ok(UNIT)
         } else {
-            return Ok(I256::ZERO);
+            Ok(I256::ZERO)
         }
+    } else if y == UNIT {
+        Ok(x)
     } else {
-        if y == UNIT {
-            Ok(x)
-        } else {
-            exp2(mul(log2(x)?, y)?)
-        }
+        exp2(mul(log2(x)?, y)?)
     }
 }
 
@@ -70,10 +68,10 @@ pub fn mul(x: I256, y: I256) -> StdResult<I256> {
         )));
     }
 
-    let ax: U256;
-    let ay: U256;
-    ax = if x < 0 { (-x).as_u256() } else { x.as_u256() };
-    ay = if y < 0 { (-y).as_u256() } else { y.as_u256() };
+    
+    
+    let ax: U256 = if x < 0 { (-x).as_u256() } else { x.as_u256() };
+    let ay: U256 = if y < 0 { (-y).as_u256() } else { y.as_u256() };
 
     let r_abs = muldiv18(ax, ay)?;
     if r_abs > MAX_SD59X18.as_u256() {
@@ -124,7 +122,7 @@ pub fn exp(x: I256) -> StdResult<I256> {
 
     // Do the fixed-point multiplication inline to save gas.
     let double_scale_product = x * LOG2_E;
-    Ok(exp2((double_scale_product + HALF_UNIT) / UNIT)?)
+    exp2((double_scale_product + HALF_UNIT) / UNIT)
 }
 
 /// @notice Calculates the binary exponent of x using the binary fraction method.

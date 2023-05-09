@@ -1,5 +1,5 @@
 use crate::common::exp10;
-use ethnum::{U256, uint};
+use ethnum::{U256};
 
 /// 10^18 or 1e18
 pub const UNIT: U256 = exp10(18);

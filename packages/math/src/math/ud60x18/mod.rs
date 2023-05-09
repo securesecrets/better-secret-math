@@ -396,12 +396,10 @@ pub fn pow(x: U256, y: U256) -> StdResult<U256> {
         } else {
             Ok(U256::ZERO)
         }
+    } else if y == UNIT {
+        Ok(x)
     } else {
-        if y == UNIT {
-            Ok(x)
-        } else {
-            exp2(mul(log2(x)?, y)?)
-        }
+        exp2(mul(log2(x)?, y)?)
     }
 }
 

@@ -1,7 +1,7 @@
 use ethnum::U256;
 use rstest::*;
 use crate::{ud60x18::{
-    constants::{ E, PI, MAX_WHOLE_UD60X18, MAX_UD60X18 },
+    constants::{ PI, MAX_WHOLE_UD60X18, MAX_UD60X18 },
     inv
 }, common::exp10};
 
@@ -38,7 +38,7 @@ fn test_err() {
 #[case(4 * exp10(18), 0_25 * exp10(16))]
 #[case(22 * exp10(18), U256::new(45_454_545_454_545_454))]
 #[case(100_135 * exp10(15), U256::new(0_009_986_518_200_429_420))]
-#[case(772_05 * exp10(16), U256::new(129_525_289_812_835_9))]
+#[case(77_205 * exp10(16), U256::new(1_295_252_898_128_359))]
 #[case(2503 * exp10(18), U256::new(399_520_575_309_628))]
 #[case(exp10(36), U256::ONE)]
 #[case(exp10(36) + 1, U256::ZERO)]
