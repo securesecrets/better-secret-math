@@ -115,10 +115,10 @@ macro_rules! assert_within_precision {
         } else {
             let actual_deviation = better_secret_math::common::muldiv18(diff, b);
             assert!(
-                actual_deviation <= allowed_deviation,
+                actual_deviation <= tolerance,
                 "Expected {:?} to be within {:?} of {:?} (Actual: {:?}",
                 a,
-                allowed_deviation,
+                tolerance,
                 b,
                 actual_deviation
             );
