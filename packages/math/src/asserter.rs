@@ -100,3 +100,28 @@ impl MathAsserter {
         assert!(actual_deviation <= deviation);
     }
 }
+
+/// Check if a is within some deviation of b.
+#[macro_export]
+macro_rules! assert_within_precision {
+    ($a:expr, $b:expr, $tolerance:expr) => {{
+        let a: better_secret_math::U256 = $a.into();
+        let b: better_secret_math::U256 = $b.into();
+        let tolerance: U256 = $tolerance.into();
+
+        let diff = better_secret_math::common::abs_diff(a, b);
+        if b == U256::ZERO && a == U256::ZERO {
+            assert!(true);
+        } else {
+            let actual_deviation = better_secret_math::common::muldiv18(diff, U256::exp10(18));
+            assert!(
+                actual_deviation <= allowed_deviation,
+                "Expected {:?} to be within {:?} of {:?} (Actual: {:?}",
+                a,
+                allowed_deviation,
+                b,
+                actual_deviation
+            );
+        }
+    }};
+}

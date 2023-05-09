@@ -2,12 +2,10 @@
 //!
 //!
 pub mod constants;
-#[cfg(test)]
-mod tests;
 
+pub use constants::*;
 use super::{asm::Asm, common, tens::*};
 use crate::common::{msb, muldiv, muldiv18};
-use constants::*;
 use cosmwasm_std::{DivideByZeroError, StdError, StdResult};
 use ethnum::{AsU256, U256};
 

@@ -1,7 +1,6 @@
 use super::*;
 use crate::ud60x18::{
     sqrt, E, PI,
-    exp10,
 };
 
 const MAX_PERMITTED: U256 = U256::from_words( 0x12725DD1D243ABA0E7, 0x5FE645CC4873F9E65AFE688C928E1F21);
