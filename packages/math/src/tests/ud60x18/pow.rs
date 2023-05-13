@@ -58,19 +58,6 @@ fn test_base_gtunit_pow(#[case] x: U256, #[case] y: U256, #[case] expected: U256
     assert_eq!(pow(x, y).unwrap(), expected);
 }
 
-// sets.push(set({ x: 0.000000000000000001e18, y: 1.78e18, expected: 0 }));
-// sets.push(set({ x: 0.01e18, y: E, expected: 0.000003659622955309e18 }));
-// sets.push(set({ x: 0.125e18, y: PI, expected: 0.001454987061394186e18 }));
-// sets.push(set({ x: 0.25e18, y: 3e18, expected: 0.015625e18 }));
-// sets.push(set({ x: 0.45e18, y: 2.2e18, expected: 0.172610627076774731e18 }));
-// sets.push(set({ x: 0.5e18, y: 0.481e18, expected: 0.716480825186549911e18 }));
-// sets.push(set({ x: 0.6e18, y: 0.95e18, expected: 0.615522152723696171e18 }));
-// sets.push(set({ x: 0.7e18, y: 3.1e18, expected: 0.330981655626097448e18 }));
-// sets.push(set({ x: 0.75e18, y: 4e18, expected: 0.316406250000000008e18 }));
-// sets.push(set({ x: 0.8e18, y: 5e18, expected: 0.327680000000000015e18 }));
-// sets.push(set({ x: 0.9e18, y: 2.5e18, expected: 0.768433471420916194e18 }));
-// sets.push(set({ x: 1e18 - 1, y: 0.08e18, expected: 1e18 }));
-
 #[rstest]
 #[case("1", 1_78 * exp10(16), "0")]
 #[case(exp10(16), E, "3659622955309")]
