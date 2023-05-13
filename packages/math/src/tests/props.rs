@@ -1,5 +1,5 @@
 use cosmwasm_std::Uint256;
-use ethnum::U256;
+use ethnum::{U256, I256};
 use proptest::{
     strategy::Strategy,
     proptest
@@ -34,5 +34,18 @@ proptest! {
         let muldiv_xyz = muldiv(x, y, z).unwrap();
         let checked_multiply_ratio_xyz = x_uint256.checked_multiply_ratio(y_uint256, z_uint256).unwrap();
         assert!(muldiv_xyz == U256::from(checked_multiply_ratio_xyz));
+    }
+
+    #[test]
+    fn proptest_i256_sub(
+        x in -100000i128..100000i128,
+        y in -100000i128..100000i128,
+    ) {
+        let a = I256::from(x);
+        let b = I256::from(y);
+        println!("a: {}, b: {}", a, b);
+        let c = a - b;
+        let z = x - y;
+        assert_eq!(c.as_i128(), z);
     }
 }

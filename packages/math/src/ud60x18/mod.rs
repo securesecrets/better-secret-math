@@ -130,7 +130,7 @@ pub fn inv(x: U256) -> StdResult<U256> {
             },
         });
     }
-    let res = DOUBLE_UNIT / x;
+    let res = UNIT_SQUARED / x;
     Ok(res)
 }
 /// @notice Converts a number from basic integer form to unsigned 60.18-decimal fixed-point representation.

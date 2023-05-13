@@ -341,7 +341,7 @@ pub fn exp2(x: U256) -> U256 {
         }
     }
 
-    if x & 0xFF00000000 > 0 {
+    if x & 0xFF000000 > 0 {
         if x & 0x80000000 > 0 {
             result = (result * 0x10000000058B90BFC) >> 64;
         }

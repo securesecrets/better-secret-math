@@ -2,7 +2,6 @@ use cosmwasm_std::{Decimal256, Uint128, Uint256};
 use ethnum::U256;
 
 use crate::common::{abs_diff, bankers_round, exp10, muldiv18};
-
 pub struct MathAsserter;
 
 impl MathAsserter {
