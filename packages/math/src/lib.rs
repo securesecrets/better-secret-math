@@ -10,11 +10,10 @@ mod primitives;
 pub mod common;
 pub mod sd59x18;
 pub mod ud60x18;
+pub mod traits;
 
 mod asm;
-mod traits;
 pub(crate) mod tens;
-pub(crate) use asm::*;
 
 #[cfg(test)]
 mod tests;
