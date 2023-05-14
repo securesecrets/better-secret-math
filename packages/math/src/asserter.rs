@@ -112,7 +112,7 @@ macro_rules! assert_within_precision {
         if b == U256::ZERO && a == U256::ZERO {
             assert!(true);
         } else {
-            let actual_deviation = better_secret_math::common::muldiv18(diff, b).unwrap();
+            let actual_deviation = better_secret_math::ud60x18::div(diff, b).unwrap();
             assert!(
                 actual_deviation <= tolerance,
                 "Expected {:?} to be within {:?} of {:?} (Actual: {:?}",
