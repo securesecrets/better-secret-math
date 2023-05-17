@@ -1,5 +1,5 @@
 //! https://simple.wikipedia.org/wiki/Order_of_magnitude.
-use ethnum::{U256};
+use ethnum::U256;
 
 /// Gets the result of 10^x in constant time. Used for decimal precision calculations (i.e. normalizing different token amounts
 /// based off their token decimals, etc). In most cases, x would be between 0 and 18, but we allow for up to 32 in case something special comes up.

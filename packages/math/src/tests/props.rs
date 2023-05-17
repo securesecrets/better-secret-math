@@ -1,9 +1,6 @@
 use cosmwasm_std::Uint256;
-use ethnum::{U256, I256};
-use proptest::{
-    strategy::Strategy,
-    proptest
-};
+use ethnum::{I256, U256};
+use proptest::{proptest, strategy::Strategy};
 
 use crate::common::muldiv;
 

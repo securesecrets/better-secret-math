@@ -1,9 +1,12 @@
+use crate::{
+    common::exp10,
+    ud60x18::{
+        constants::{E, MAX_UD60X18, MAX_WHOLE_UD60X18, PI, SQRT_MAX_UD60X18},
+        gm,
+    },
+};
 use ethnum::U256;
 use rstest::*;
-use crate::{ud60x18::{
-    constants::{ PI, SQRT_MAX_UD60X18, E, MAX_WHOLE_UD60X18, MAX_UD60X18 },
-    gm
-}, common::exp10};
 
 const SQRT_MAX_UINT256: U256 = U256::new(340282366920938463463374607431768211455u128);
 

@@ -1,9 +1,10 @@
 use super::*;
-use crate::ud60x18::{
-    pow, E, PI,
-};
+use crate::ud60x18::{pow, E, PI};
 
-const MAX_PERMITTED: U256 = U256::from_words(0x0DE0B6B3A763FFFFFFFFFFFFFFFFFFFF, 0xffffffffffffffffffffffffffffffff);
+const MAX_PERMITTED: U256 = U256::from_words(
+    0x0DE0B6B3A763FFFFFFFFFFFFFFFFFFFF,
+    0xffffffffffffffffffffffffffffffff,
+);
 
 #[test]
 fn test_pow_base_and_exp_zero() {
@@ -20,9 +21,9 @@ fn test_pow_base_zero_exp_not_zero(#[case] x: U256, #[case] y: U256, #[case] exp
 }
 
 #[rstest]
-#[case(exp10(18),  exp10(18))]
-#[case(E,  exp10(18))]
-#[case(PI,  exp10(18))]
+#[case(exp10(18), exp10(18))]
+#[case(E, exp10(18))]
+#[case(PI, exp10(18))]
 fn test_exp_zero(#[case] x: U256, #[case] expected: U256) {
     assert_eq!(pow(x, U256::ZERO).unwrap(), expected);
 }

@@ -1,5 +1,5 @@
 use crate::common::exp10;
-use ethnum::{U256};
+use ethnum::U256;
 
 pub const EXP_MAX_INPUT: U256 = U256::new(133_084258667509499440u128);
 /// 192e18 - 1

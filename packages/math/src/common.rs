@@ -1,7 +1,10 @@
 //! Common mathematical functions used in ud60x18 and sd59x18. Note that this shared library does not always assume the unsigned 60.18-decimal fixed-point representation. When it does not, it is explicitly mentioned in the documentation.
 //! Forks methods from here - https://github.com/paulrberg/prb-math/blob/main/contracts/PRBMath.sol.
 pub use super::tens::exp10;
-use crate::{asm::{Asm, u256_to_u512, u512_to_u256}, ud60x18::constants::*};
+use crate::{
+    asm::{u256_to_u512, u512_to_u256, Asm},
+    ud60x18::constants::*,
+};
 use cosmwasm_std::{DivideByZeroError, OverflowError, OverflowOperation, StdError, StdResult};
 use primitive_types::U512;
 use std::ops::Not;
@@ -132,8 +135,8 @@ pub fn muldiv(x: U256, y: U256, denominator: U256) -> StdResult<U256> {
     // 512-bit multiply [prod1 prod0] = x * y. Compute the product mod 2^256 and mod 2^256 - 1, then use
     // use the Chinese Remainder Theorem to reconstruct the 512 bit result. The result is stored in two 256
     // variables such that product = prod1 * 2^256 + prod0.
-     // Least significant 256 bits of the product
-     // Most significant 256 bits of the product
+    // Least significant 256 bits of the product
+    // Most significant 256 bits of the product
     let result: U256;
 
     let mm = Asm::mulmod(x, y, U256::ZERO.not());
@@ -547,10 +550,9 @@ pub fn sqrt(x: U256) -> U256 {
 
 #[cfg(test)]
 mod test {
-    
-    
-    use rstest::*;
+
     use super::*;
+    use rstest::*;
 
     #[rstest]
     #[case("99958", 2, 5)]

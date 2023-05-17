@@ -3,9 +3,9 @@
 //!
 pub mod constants;
 
-pub use constants::*;
 use super::{asm::Asm, common, tens::*};
 use crate::common::{msb, muldiv, muldiv18};
+pub use constants::*;
 use cosmwasm_std::{DivideByZeroError, StdError, StdResult};
 use ethnum::{AsU256, U256};
 
@@ -390,34 +390,34 @@ pub fn pi() -> U256 {
 /// @param y Exponent to raise x to, as an unsigned 60.18-decimal fixed-point number.
 /// @return result x raised to power y, as an unsigned 60.18-decimal fixed-point number.
 pub fn pow(x: U256, y: U256) -> StdResult<U256> {
-        // If both x and y are zero, the result is `UNIT`. If just x is zero, the result is always zero.
-        if x == 0 {
-            return if y == 0 { Ok(UNIT) } else { Ok(U256::ZERO) };
-        }
-        // If x is `UNIT`, the result is always `UNIT`.
-        else if x == UNIT {
-            return Ok(UNIT);
-        }
-    
-        // If y is zero, the result is always `UNIT`.
-        if y == 0 {
-            return Ok(UNIT);
-        }
-        // If y is `UNIT`, the result is always x.
-        else if y == UNIT {
-            return Ok(x);
-        }
-    
-        // If x is greater than `UNIT`, use the standard formula.
-        if x > UNIT {
-            exp2(mul(log2(x)?, y)?)
-        }
-        // Conversely, if x is less than `UNIT`, use the equivalent formula.
-        else {
-            let i = UNIT_SQUARED / x;
-            let w = exp2(mul(log2(i)?, y)?)?;
-            Ok(UNIT_SQUARED / w)
-        }
+    // If both x and y are zero, the result is `UNIT`. If just x is zero, the result is always zero.
+    if x == 0 {
+        return if y == 0 { Ok(UNIT) } else { Ok(U256::ZERO) };
+    }
+    // If x is `UNIT`, the result is always `UNIT`.
+    else if x == UNIT {
+        return Ok(UNIT);
+    }
+
+    // If y is zero, the result is always `UNIT`.
+    if y == 0 {
+        return Ok(UNIT);
+    }
+    // If y is `UNIT`, the result is always x.
+    else if y == UNIT {
+        return Ok(x);
+    }
+
+    // If x is greater than `UNIT`, use the standard formula.
+    if x > UNIT {
+        exp2(mul(log2(x)?, y)?)
+    }
+    // Conversely, if x is less than `UNIT`, use the equivalent formula.
+    else {
+        let i = UNIT_SQUARED / x;
+        let w = exp2(mul(log2(i)?, y)?)?;
+        Ok(UNIT_SQUARED / w)
+    }
 }
 
 /// @notice Raises x (unsigned 60.18-decimal fixed-point number) to the power of y (basic unsigned integer) using the

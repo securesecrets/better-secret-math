@@ -1,7 +1,7 @@
-use cosmwasm_std::{StdError, StdResult};
-use ethnum::{I256, U256};
 use crate::asm::Asm;
 use crate::common::{msb, muldiv18};
+use cosmwasm_std::{StdError, StdResult};
+use ethnum::{I256, U256};
 
 use super::common;
 pub mod constants;
@@ -46,8 +46,6 @@ pub fn mul(x: I256, y: I256) -> StdResult<I256> {
         )));
     }
 
-    
-    
     let ax: U256 = if x < 0 { (-x).as_u256() } else { x.as_u256() };
     let ay: U256 = if y < 0 { (-y).as_u256() } else { y.as_u256() };
 
