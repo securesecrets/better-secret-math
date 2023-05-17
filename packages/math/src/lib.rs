@@ -8,6 +8,7 @@ pub mod asserter;
 mod primitives;
 
 pub mod common;
+pub mod traits;
 pub mod sd59x18;
 pub mod ud60x18;
 
