@@ -53,14 +53,14 @@ pub fn bankers_round(x: U256, digit: u8) -> U256 {
         }
         _ => n > 5,
     };
-    let precision = exp10(digit as u16);
+    let precision = exp10(digit);
 
     (x + if round_up { precision } else { U256::ZERO }) / precision * precision
 }
 
 /// Where x is a positive integer. Supports up to 32 digits.
 pub fn nth_digit(x: U256, digit: u8) -> u8 {
-    ((x / exp10((digit - 1) as u16)) % 10).as_u8()
+    ((x / exp10(digit - 1)) % 10).as_u8()
 }
 
 /// @notice Finds the zero-based index of the first one in the binary representation of x.

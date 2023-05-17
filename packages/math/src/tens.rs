@@ -4,10 +4,10 @@ use ethnum::{U256};
 /// Gets the result of 10^x in constant time. Used for decimal precision calculations (i.e. normalizing different token amounts
 /// based off their token decimals, etc). In most cases, x would be between 0 and 18, but we allow for up to 32 in case something special comes up.
 ///
-/// @param x - integer between 0 and 32
+/// @param x - integer between 0 and 77, inclusive (10^78 overflows U256)
 ///
 /// @return result 10^x as U256
-pub const fn exp10(x: u16) -> U256 {
+pub const fn exp10(x: u8) -> U256 {
     match x {
         0 => QUINTILLIONTH,
         1 => HUN_QUADRILLIONTH,
@@ -246,7 +246,7 @@ mod test {
     #[test]
     fn test_const() {
         let mut expected_string = "1".to_string();
-        for i in 0..78_u16 {
+        for i in 0..78_u8 {
             let result = std::panic::catch_unwind(|| exp10(i));
             if i == 78 {
                 assert!(result.is_err());

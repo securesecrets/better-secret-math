@@ -10,7 +10,6 @@ mod primitives;
 pub mod common;
 pub mod sd59x18;
 pub mod ud60x18;
-pub mod traits;
 
 mod asm;
 pub(crate) mod tens;
