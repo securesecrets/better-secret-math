@@ -1,9 +1,12 @@
+use crate::{
+    common::exp10,
+    ud60x18::{
+        constants::{E, MAX_UD60X18, MAX_WHOLE_UD60X18, PI},
+        log10,
+    },
+};
 use ethnum::U256;
 use rstest::*;
-use crate::{ud60x18::{
-    constants::{ E, PI, MAX_WHOLE_UD60X18, MAX_UD60X18 },
-    log10
-}, common::exp10};
 
 #[test]
 fn test_too_small() {

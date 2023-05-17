@@ -1,7 +1,6 @@
 use better_secret_math::{
-    common::{muldiv, muldiv18},
+    common::{exp10, muldiv, muldiv18},
     ud60x18::{constants::UNIT, mul},
-    UNIT_U128,
 };
 use cosmwasm_std::{Decimal256, StdResult, Uint256};
 use criterion::{black_box, criterion_group, Criterion};
@@ -101,7 +100,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| {
             black_box(sml_uint[2]).multiply_ratio(
                 black_box(sml_uint[3]),
-                black_box(Uint256::from_u128(UNIT_U128)),
+                black_box(Uint256::from_u128(exp10(18).as_u128())),
             )
         })
     });

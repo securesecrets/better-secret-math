@@ -1,10 +1,14 @@
 use crate::common::exp10;
-use ethnum::{U256};
+use ethnum::U256;
+
+pub const EXP_MAX_INPUT: U256 = U256::new(133_084258667509499440u128);
+/// 192e18 - 1
+pub const EXP2_MAX_INPUT: U256 = U256::new(1_919_999_999_999_999_999u128);
 
 /// 10^18 or 1e18
 pub const UNIT: U256 = exp10(18);
 /// 10^36 or 1e36
-pub const DOUBLE_UNIT: U256 = exp10(36);
+pub const UNIT_SQUARED: U256 = exp10(36);
 /// Largest power of two divisor of UNIT.
 pub const UNIT_LPOTD: U256 = U256::new(262144u128);
 /// UNIT inverted mod 2^256.

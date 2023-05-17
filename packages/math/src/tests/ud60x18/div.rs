@@ -1,7 +1,5 @@
 use super::*;
-use crate::ud60x18::{
-    div, MAX_SCALED_UD60X18, MAX_UD60X18, MAX_WHOLE_UD60X18, PI,
-};
+use crate::ud60x18::{div, MAX_SCALED_UD60X18, MAX_UD60X18, MAX_WHOLE_UD60X18, PI};
 
 #[rstest]
 #[case(U256::ONE, U256::ZERO)]

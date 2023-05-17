@@ -1,33 +1,11 @@
+use crate::asm::Asm;
+use crate::common::{msb, muldiv18};
 use cosmwasm_std::{StdError, StdResult};
 use ethnum::{I256, U256};
 
-use crate::asm::Asm;
-use crate::common::{msb, muldiv18};
-
 use super::common;
-use super::{HALF_UNIT_U128, LOG2_E_U128, UNIT_U128};
-
-const UNIT: I256 = I256::new(UNIT_U128 as i128);
-const HALF_UNIT: I256 = I256::new(HALF_UNIT_U128 as i128);
-const LOG2_E: I256 = I256::new(LOG2_E_U128 as i128);
-const DOUBLE_UNIT: I256 = I256::new(1_000_000_000_000_000_000_000_000_000_000_000_000i128);
-
-const MAX_SD59X18: I256 = I256::MAX;
-
-/// @The maximum whole value a signed 59.18-decimal fixed-point number can have.
-const MAX_WHOLE_SD59X18: I256 = I256::from_words(
-    170141183460469231731687303715884105727i128,
-    -792003956564819968,
-);
-
-/// @dev The minimum value a signed 59.18-decimal fixed-point number can have.
-const MIN_SD59X18: I256 = I256::MIN;
-
-/// @dev The minimum whole value a signed 59.18-decimal fixed-point number can have.
-const MIN_WHOLE_SD59X18: I256 = I256::from_words(
-    -170141183460469231731687303715884105728i128,
-    792003956564819968,
-);
+pub mod constants;
+pub use constants::*;
 
 pub fn pow(x: I256, y: I256) -> StdResult<I256> {
     if x == 0 {
@@ -68,8 +46,6 @@ pub fn mul(x: I256, y: I256) -> StdResult<I256> {
         )));
     }
 
-    
-    
     let ax: U256 = if x < 0 { (-x).as_u256() } else { x.as_u256() };
     let ay: U256 = if y < 0 { (-y).as_u256() } else { y.as_u256() };
 

@@ -1,9 +1,12 @@
+use crate::{
+    common::exp10,
+    ud60x18::{
+        constants::{MAX_UD60X18, MAX_WHOLE_UD60X18, PI},
+        inv,
+    },
+};
 use ethnum::U256;
 use rstest::*;
-use crate::{ud60x18::{
-    constants::{ PI, MAX_WHOLE_UD60X18, MAX_UD60X18 },
-    inv
-}, common::exp10};
 
 #[test]
 fn test_err() {

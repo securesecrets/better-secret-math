@@ -1,9 +1,12 @@
+use crate::{
+    common::exp10,
+    ud60x18::{
+        constants::{E, PI},
+        exp,
+    },
+};
 use ethnum::U256;
 use rstest::*;
-use crate::{ud60x18::{
-    constants::{ E, PI },
-    exp
-}, common::exp10};
 
 const MAX_PERMITTED: U256 = U256::new(133_084258667509499440u128);
 

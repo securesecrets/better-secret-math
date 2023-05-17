@@ -23,7 +23,7 @@ schemars = { workspace = true }
 serde = { workspace = true }
 borsh = { workspace = true }
 thiserror = { workspace = true }
-ethnum = { workspace = true, features = ["cosmos", "borsh", "serde"] }
+ethnum = { workspace = true, features = ["cosmos", "borsh", "serde", "macros"] }
 primitive-types = { workspace = true }
 
 paste = { workspace = true }
@@ -31,7 +31,6 @@ derive-from-ext = { workspace = true }
 btr-macros = { path = "../btr_macros" }
 
 [dev-dependencies]
-ethnum = { workspace = true, features = ["macros"] }
 rstest = { workspace = true }
 criterion = { workspace = true }
 serde_json = { workspace = true }
