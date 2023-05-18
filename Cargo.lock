@@ -560,7 +560,7 @@ dependencies = [
 [[package]]
 name = "ethnum"
 version = "1.3.2"
-source = "git+https://github.com/securesecrets/ethnum-rs#59dacfb63c83304de654d16badb78a750b34af7d"
+source = "git+https://github.com/securesecrets/ethnum-rs?branch=v1.1.10-secret#63c8ce7c57914cb03f4f9ab31831e8a4ba14997c"
 dependencies = [
  "arbitrary",
  "borsh",
@@ -572,7 +572,7 @@ dependencies = [
 [[package]]
 name = "ethnum-macros"
 version = "1.1.0"
-source = "git+https://github.com/securesecrets/ethnum-rs#59dacfb63c83304de654d16badb78a750b34af7d"
+source = "git+https://github.com/securesecrets/ethnum-rs?branch=v1.1.10-secret#63c8ce7c57914cb03f4f9ab31831e8a4ba14997c"
 
 [[package]]
 name = "fastrand"
